@@ -8,12 +8,12 @@
 
 ## Integrantes
 
-* Leonardo
-* Ravi 
+* Leonardo de Souza Fernandes
+* Ravi Dornelas e Silva
 
 ## Orientadores
 
-* Professor(a) responsável pela disciplina
+* Ilo Amy Saldanha Rivero
 
 ## Resumo
 
