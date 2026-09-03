@@ -9,7 +9,7 @@
 ## Integrantes
 
 * Leonardo
-* Ravi Dornellas e Silva
+* Ravi 
 
 ## Orientadores
 
