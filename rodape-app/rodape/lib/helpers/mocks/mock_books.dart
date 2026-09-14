@@ -21,6 +21,7 @@ class MockBooks {
     exemplares: 4,
     distanciaKm: 0.6,
     freteValor: 12.90,
+    descricao: 'Duas irmãs crescem numa fazenda no sertão baiano, marcadas por um segredo de infância que volta a assombrar a família anos depois.',
   );
 
   static const somEAFuria = Book(
@@ -34,6 +35,7 @@ class MockBooks {
     exemplares: 2,
     distanciaKm: 1.4,
     freteValor: 16.90,
+    descricao: 'A decadência da família Compson no sul dos Estados Unidos, narrada em quatro vozes distintas que misturam tempo e memória.',
   );
 
   static const vidasSecas = Book(
@@ -44,6 +46,7 @@ class MockBooks {
     maos: 3,
     status: BookStatus.disponivel,
     exemplares: 5,
+    descricao: 'Uma família de retirantes atravessa a seca no sertão nordestino em busca de sobrevivência e um lugar para chamar de seu.',
   );
 
   static const oCortico = Book(
@@ -54,6 +57,7 @@ class MockBooks {
     maos: 2,
     status: BookStatus.reservado,
     exemplares: 1,
+    descricao: 'O cotidiano de um cortiço no Rio de Janeiro do século XIX, retrato cru de ambição, desejo e disputa social.',
   );
 
   static const horaDaEstrela = Book(
@@ -64,6 +68,7 @@ class MockBooks {
     maos: 5,
     status: BookStatus.caminho,
     exemplares: 1,
+    descricao: 'Macabéa, uma nordestina pobre e quase invisível no Rio de Janeiro, ganha voz numa narrativa sobre existência e indiferença.',
   );
 
   static const quartoDeDespejo = Book(
@@ -74,6 +79,7 @@ class MockBooks {
     maos: 7,
     status: BookStatus.entregue,
     exemplares: 1,
+    descricao: 'O diário de uma catadora de papel que registra, com crueza, a fome e a vida numa favela de São Paulo nos anos 1950.',
   );
 
   static const grandeSertao = Book(
@@ -85,6 +91,7 @@ class MockBooks {
     status: BookStatus.disponivel,
     exemplares: 1,
     distanciaKm: 0.9,
+    descricao: 'O jagunço Riobaldo relembra sua vida no sertão, entre pactos, amores e a dúvida que o persegue: existe ou não o demônio?',
   );
 
   static const osSertoes = Book(
@@ -97,6 +104,7 @@ class MockBooks {
     exemplares: 3,
     distanciaKm: 3.1,
     freteValor: 22.90,
+    descricao: 'Relato histórico e literário da Guerra de Canudos, entre a terra, o clima e o povo que resistiu ao Exército brasileiro.',
   );
 
   static const paixaoSegundoGH = Book(
@@ -109,6 +117,7 @@ class MockBooks {
     exemplares: 1,
     distanciaKm: 2.8,
     freteValor: 19.90,
+    descricao: 'Uma mulher tem uma crise existencial ao encontrar uma barata no quarto de empregada de seu apartamento.',
   );
 
   static const estorvo = Book(
@@ -119,6 +128,7 @@ class MockBooks {
     maos: 0,
     status: BookStatus.disponivel,
     exemplares: 0,
+    descricao: 'Um homem é perseguido — ou acredita ser — numa narrativa que confunde realidade e paranoia do início ao fim.',
   );
 
   static const memoriasPostumas = Book(
@@ -129,6 +139,7 @@ class MockBooks {
     maos: 7,
     status: BookStatus.entregue,
     exemplares: 0,
+    descricao: 'Brás Cubas narra a própria vida já morto, com ironia e digressões sobre amor, vaidade e o sentido de tudo.',
   );
 
   /// Todo o catálogo simulado.

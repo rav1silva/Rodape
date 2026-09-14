@@ -20,6 +20,7 @@ class Book {
     this.creditos = 1,
     this.freteValor,
     this.coverAsset,
+    this.descricao,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class Book {
   final double? distanciaKm;
   final int creditos;
   final double? freteValor;
+  final String? descricao;
 
   /// Caminho de asset local da capa, quando existir. Sem asset, a UI usa a
   /// cor da lombada como placeholder.
@@ -44,6 +46,7 @@ class Book {
   String get distanciaLabel =>
       distanciaKm == null ? '' : '${distanciaKm!.toStringAsFixed(1)} km';
 
-  String get freteLabel =>
-      freteValor == null ? '' : 'R\$ ${freteValor!.toStringAsFixed(2).replaceAll('.', ',')}';
+  String get freteLabel => freteValor == null
+      ? ''
+      : 'R\$ ${freteValor!.toStringAsFixed(2).replaceAll('.', ',')}';
 }
