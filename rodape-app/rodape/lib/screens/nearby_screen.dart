@@ -52,7 +52,10 @@ class NearbyScreen extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () {},
-                    icon: const Icon(Icons.map_outlined, color: AppColors.paper100),
+                    icon: const Icon(
+                      Icons.map_outlined,
+                      color: AppColors.paper100,
+                    ),
                   ),
                 ],
               ),
@@ -87,15 +90,20 @@ class NearbyScreen extends StatelessWidget {
                       border: Border.all(color: AppColors.wood800),
                       borderRadius: BorderRadius.circular(5),
                       boxShadow: const [
-                        BoxShadow(color: AppColors.shadowStamped, offset: Offset(2, 2)),
+                        BoxShadow(
+                          color: AppColors.shadowStamped,
+                          offset: Offset(2, 2),
+                        ),
                       ],
                     ),
                     child: BookRow(
                       book: livros[0],
                       coverWidth: 112,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      subtitle: '${livros[0].autor}\nestado: ${livros[0].estadoConservacao}',
-                      metaLine: '${livros[0].distanciaLabel}\n1 CRÉDITO + ${livros[0].freteLabel}',
+                      subtitle:
+                          '${livros[0].autor}\nestado: ${livros[0].estadoConservacao}',
+                      metaLine:
+                          '${livros[0].distanciaLabel}\n1 CRÉDITO + ${livros[0].freteLabel}',
                       footer: RodapeButton(
                         label: 'Resgatar crédito',
                         icon: Icons.paid_outlined,
@@ -110,7 +118,8 @@ class NearbyScreen extends StatelessWidget {
                     book: livros[1],
                     coverWidth: 96,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    metaLine: '${livros[1].distanciaLabel} · 1 CRÉDITO + ${livros[1].freteLabel}',
+                    metaLine:
+                        '${livros[1].distanciaLabel} · 1 CRÉDITO + ${livros[1].freteLabel}',
                     footer: RodapeButton(
                       label: 'Resgatar crédito',
                       size: RodapeButtonSize.sm,
@@ -131,12 +140,18 @@ class NearbyScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Mais 34 livros entre R\$ 25 e R\$ 60 de frete',
-                          style: AppTextStyles.display(fontSize: 17, color: AppColors.wood800),
+                          style: AppTextStyles.display(
+                            fontSize: 17,
+                            color: AppColors.wood800,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Estão acima do seu limite de R\$ 25.',
-                          style: AppTextStyles.sans(fontSize: 13, color: AppColors.wood700),
+                          style: AppTextStyles.sans(
+                            fontSize: 13,
+                            color: AppColors.wood700,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         RodapeButton(
