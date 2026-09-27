@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Paleta extraída do layout oficial ("Rodapé - Telas do App v2").
-///
-/// A identidade visual é de livraria, não de biblioteca: fundo de madeira
-/// escura, papel claro e cor vinda das "lombadas" dos livros (laranja,
-/// mostarda, oliva, teal e vinho).
 class AppColors {
   AppColors._();
 
