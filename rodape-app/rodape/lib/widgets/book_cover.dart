@@ -5,8 +5,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'carimbo_stamp.dart';
 
-/// Capa de um exemplar. Sem imagem real, a cor da lombada é o
-/// protagonista — cada capa é um "slot" colorido com o título.
+/// Capa de um exemplar. Usa [Book.coverAsset] quando existe; sem imagem (ou
+/// se o asset falhar ao carregar), a cor da lombada vira o placeholder 
+/// um "slot" colorido com o título.
 ///
 /// Quando [showStamp] é true, o carimbo de circulação ([book.maos]) fica
 /// ancorado no canto inferior esquerdo, sobrepondo a capa.
@@ -29,16 +30,10 @@ class BookCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final h = height ?? width * 1.5;
-    final cover = Container(
-      width: width,
-      height: h,
+    final placeholder = Container(
       padding: const EdgeInsets.all(6),
       alignment: Alignment.bottomLeft,
-      decoration: BoxDecoration(
-        color: book.spineColor,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: AppColors.wood800, width: 1),
-      ),
+      color: book.spineColor,
       child: Text(
         book.titulo,
         maxLines: 3,
@@ -49,6 +44,24 @@ class BookCover extends StatelessWidget {
           height: 0.95,
         ),
       ),
+    );
+
+    final cover = Container(
+      width: width,
+      height: h,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: book.spineColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: AppColors.wood800, width: 1),
+      ),
+      child: book.coverAsset == null
+          ? placeholder
+          : Image.asset(
+              book.coverAsset!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => placeholder,
+            ),
     );
 
     if (!showStamp) return cover;

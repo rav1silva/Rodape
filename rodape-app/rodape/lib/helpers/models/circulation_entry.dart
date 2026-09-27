@@ -8,6 +8,7 @@ class CirculationEntry {
     required this.maos,
     required this.statusLabel,
     this.statusColor,
+    this.coverAsset,
   });
 
   final String titulo;
@@ -15,4 +16,7 @@ class CirculationEntry {
   final int maos;
   final String statusLabel;
   final Color? statusColor;
+
+  /// Caminho de asset local da capa; sem ele, a UI usa a cor da lombada.
+  final String? coverAsset;
 }

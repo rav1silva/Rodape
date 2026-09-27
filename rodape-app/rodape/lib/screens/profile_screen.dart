@@ -73,10 +73,18 @@ class ProfileScreen extends StatelessWidget {
                         Container(
                           width: 34,
                           height: 51,
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: h.spineColor,
                             borderRadius: BorderRadius.circular(2),
                           ),
+                          child: h.coverAsset == null
+                              ? null
+                              : Image.asset(
+                                  h.coverAsset!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         CarimboStamp(maos: h.maos, compact: true),

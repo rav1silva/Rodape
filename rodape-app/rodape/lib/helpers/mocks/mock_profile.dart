@@ -37,18 +37,21 @@ class MockProfile {
     CirculationEntry(
       titulo: 'Quarto de despejo',
       spineColor: AppColors.spineTeal,
+      coverAsset: 'lib/assets/images/quarto de despejo.jpg',
       maos: 4,
       statusLabel: 'Foi para Diego F. · 12/07',
     ),
     CirculationEntry(
       titulo: 'Memórias póstumas',
       spineColor: AppColors.spineOlive,
+      coverAsset: 'lib/assets/images/memorias postumas.jpg',
       maos: 7,
       statusLabel: 'Foi para Luísa R. · 28/06',
     ),
     CirculationEntry(
       titulo: 'O cortiço',
       spineColor: AppColors.spineOrange,
+      coverAsset: 'lib/assets/images/o cortico.jpg',
       maos: 3,
       statusLabel: 'A caminho de Bruno M.',
       statusColor: AppColors.spineTeal,

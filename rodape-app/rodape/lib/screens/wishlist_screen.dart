@@ -14,7 +14,7 @@ class WishlistScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lista = MockBooks.listaDeDesejos;
-    const saldo = 3;
+    const saldo = 4;
 
     return Scaffold(
       backgroundColor: AppColors.paper100,

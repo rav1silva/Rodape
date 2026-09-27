@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
                 children: [
                   CreditBalanceCard(
-                    saldo: 3,
+                    saldo: 4,
                     validade: '12/10',
                     onResgatar: () {},
                   ),
