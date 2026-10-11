@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
 import '../helpers/helper_pref.dart';
@@ -62,10 +63,18 @@ class _CepStepScreenState extends State<CepStepScreen> {
     _buscarCep(_controller.text);
   }
 
+  void _nextStep() {
+    ProfileService.registerModel.cep = _resultado?.cep ?? "";
+    if (mounted) {
+      Navigator.of(context).pushNamed('/nearby-books', arguments: _resultado);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final digits = _controller.text.replaceAll(RegExp(r'\D'), '');
-    final foraDeArea = _errorText != null && digits.length == 8 && _resultado == null;
+    final foraDeArea =
+        _errorText != null && digits.length == 8 && _resultado == null;
 
     return Scaffold(
       backgroundColor: AppColors.paper100,
@@ -86,7 +95,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
                   Text(
                     'O CEP calcula distância e frete. O endereço completo só entra '
                     'quando houver uma entrega de verdade.',
-                    style: AppTextStyles.sans(fontSize: 15, color: AppColors.ink700),
+                    style: AppTextStyles.sans(
+                      fontSize: 15,
+                      color: AppColors.ink700,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   RodapeTextField(
@@ -106,11 +118,16 @@ class _CepStepScreenState extends State<CepStepScreen> {
                   if (_loading)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
                   if (_resultado != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceCard,
                         border: Border.all(color: AppColors.spineTeal),
@@ -118,7 +135,11 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle, size: 17, color: AppColors.spineTeal),
+                          const Icon(
+                            Icons.check_circle,
+                            size: 17,
+                            color: AppColors.spineTeal,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -127,7 +148,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
                               children: [
                                 Text(
                                   _resultado!.enderecoLabel,
-                                  style: AppTextStyles.sans(fontSize: 15, fontWeight: FontWeight.w600),
+                                  style: AppTextStyles.sans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 Text(
                                   _resultado!.densidadeLabel.toUpperCase(),
@@ -154,7 +178,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
                     const SizedBox(height: 18),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceSunken,
                         borderRadius: BorderRadius.circular(3),
@@ -175,7 +202,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
                           Text(
                             'Se ainda não houver cobertura no seu CEP, a gente diz na hora e '
                             'avisa quando chegar. Você não fica parado nesta tela.',
-                            style: AppTextStyles.sans(fontSize: 13, color: AppColors.ink700),
+                            style: AppTextStyles.sans(
+                              fontSize: 13,
+                              color: AppColors.ink700,
+                            ),
                           ),
                         ],
                       ),
@@ -188,13 +218,13 @@ class _CepStepScreenState extends State<CepStepScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
-                border: Border(top: BorderSide(color: AppColors.borderHairline)),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderHairline),
+                ),
               ),
               child: RodapeButton(
                 label: 'Continuar',
-                onPressed: _resultado == null
-                    ? null
-                    : () => Navigator.of(context).pushNamed('/nearby-books', arguments: _resultado),
+                onPressed: _resultado == null ? null : _nextStep,
               ),
             ),
           ],

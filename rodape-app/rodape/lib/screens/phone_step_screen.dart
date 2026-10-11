@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
 import '../helpers/input_formatters.dart';
@@ -25,7 +26,8 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
   final _numeroController = TextEditingController();
   bool _enviando = false;
 
-  bool get _numeroValido => _numeroController.text.replaceAll(RegExp(r'\D'), '').length >= 8;
+  bool get _numeroValido =>
+      _numeroController.text.replaceAll(RegExp(r'\D'), '').length >= 8;
 
   @override
   void dispose() {
@@ -41,9 +43,12 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
     if (!mounted) return;
     setState(() => _enviando = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Código de teste (mock): $codigo')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Código de teste (mock): $codigo')));
+
+    ProfileService.registerModel.ddd = _ddiController.text;
+    ProfileService.registerModel.numeroCelular = _numeroController.text;
 
     Navigator.of(context).pushNamed(
       '/otp',
@@ -79,7 +84,10 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                   Text(
                     'O número serve para entrar no app e para o entregador te achar '
                     'no dia da troca.',
-                    style: AppTextStyles.sans(fontSize: 15, color: AppColors.ink700),
+                    style: AppTextStyles.sans(
+                      fontSize: 15,
+                      color: AppColors.ink700,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Row(
@@ -120,7 +128,9 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                     margin: const EdgeInsets.only(top: 16),
                     padding: const EdgeInsets.only(top: 12),
                     decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: AppColors.borderData)),
+                      border: Border(
+                        top: BorderSide(color: AppColors.borderData),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +160,10 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                         const SizedBox(height: 10),
                         Text(
                           'Pelo atalho, o telefone é pedido antes da primeira entrega.',
-                          style: AppTextStyles.sans(fontSize: 12, color: AppColors.textMuted),
+                          style: AppTextStyles.sans(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),
@@ -162,7 +175,9 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
-                border: Border(top: BorderSide(color: AppColors.borderHairline)),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderHairline),
+                ),
               ),
               child: RodapeButton(
                 label: _enviando ? 'Enviando…' : 'Enviar código',
