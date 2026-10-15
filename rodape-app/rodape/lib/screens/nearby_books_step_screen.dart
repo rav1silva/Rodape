@@ -134,7 +134,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (final b in data)
+                        for (final b in data.where((b) => !_lista.contains(b)))
                           ListTile(
                             dense: true,
                             title: Text(
