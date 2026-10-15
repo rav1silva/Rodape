@@ -48,6 +48,9 @@ Future<void> main() async {
     publishableKey: dotenv.get("SUPABASE_KEY"),
   );
 
+  await HelperPref.clearAuthToken();
+  await HelperPref.setOnboardingDone(false);
+
   final onboardingConcluido = await HelperPref.isOnboardingDone();
   runApp(
     RodapeApp(
