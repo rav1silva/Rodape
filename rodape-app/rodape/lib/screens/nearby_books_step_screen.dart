@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/address.dart';
+import 'package:rodape/models/livro.dart';
+import 'package:rodape/models/onboarding_args.dart';
+import 'package:rodape/screens/book_details_screen.dart';
+import 'package:rodape/services/exemplar_service.dart';
+import 'package:rodape/services/livro_service.dart';
+import 'package:rodape/services/profile_service.dart';
+import 'package:throttling/throttling.dart';
 
-import '../helpers/mocks/mock_books.dart';
-import '../helpers/models/book.dart';
-import '../helpers/models/cep_info.dart';
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/book_row.dart';
 import '../widgets/rodape_button.dart';
 import '../widgets/rodape_text_field.dart';
 import '../widgets/step_progress_header.dart';
-import 'book_details_screen.dart';
 
 /// C3 · O que você quer ler — Passo 2 de 4. Lista de desejos inicial +
 /// prova de liquidez (quantos exemplares já existem perto do usuário).
 class NearbyBooksStepScreen extends StatefulWidget {
   const NearbyBooksStepScreen({super.key, required this.cepInfo});
 
-  final CepInfo cepInfo;
+  final Address cepInfo;
 
   @override
   State<NearbyBooksStepScreen> createState() => _NearbyBooksStepScreenState();
@@ -25,38 +28,35 @@ class NearbyBooksStepScreen extends StatefulWidget {
 
 class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
   final _searchController = TextEditingController();
+  final thr = Throttling<void>(duration: Duration(seconds: 5));
+  Future<List<Livro>>? _tarefaAtual;
 
-  final List<Book> _lista = [];
-
-  List<Book> get _sugestoes {
-    final termo = _searchController.text.trim().toLowerCase();
-    if (termo.isEmpty) return const [];
-    return MockBooks.all
-        .where((b) => !_lista.contains(b))
-        .where(
-          (b) =>
-              b.titulo.toLowerCase().contains(termo) ||
-              b.autor.toLowerCase().contains(termo),
-        )
-        .take(4)
-        .toList();
+  final List<Livro> _lista = [];
+  Future<List<Livro>> _obterLivros() async {
+    final searchValue = _searchController.text;
+    return await LivroService.obterLivros(filtro: searchValue);
   }
 
-  void _remover(Book book) {
+  void _remover(Livro book) {
     setState(() {
       _lista.remove(book);
     });
   }
 
-  void _adicionar(Book book) {
+  Future<void> _adicionar(Livro book) async {
+    book.exemplares = await ExemplarService.obterExemplaresLivro(book);
     setState(() {
       _lista.add(book);
       _searchController.clear();
     });
+
+    if (!mounted) {
+      return;
+    }
     FocusScope.of(context).unfocus();
   }
 
-  void _abrirDetalhes(Book book) {
+  void _abrirDetalhes(Livro book) {
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)));
   }
@@ -67,12 +67,25 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
     super.dispose();
   }
 
+  void _salvar() {
+    ProfileService.registerModel.livros = _lista;
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context)
+        .pushNamed('/phone', arguments: const PhoneStepArgs(isLogin: false));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final comExemplar = _lista.where((b) => b.exemplares > 0).toList();
+    final comExemplar = _lista
+        .where((b) => (b.exemplares?.length ?? 0) > 0)
+        .toList();
     final totalExemplares = comExemplar.fold<int>(
       0,
-      (sum, b) => sum + b.exemplares,
+      (sum, b) => sum + (b.exemplares?.length ?? 0),
     );
 
     return Scaffold(
@@ -84,7 +97,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
             StepProgressHeader(
               step: 2,
               totalSteps: 4,
-              eyebrowSuffix: ' · ${widget.cepInfo.endereco}',
+              eyebrowSuffix: ' · ${widget.cepInfo.street}',
               title:
                   '$totalExemplares exemplares dos seus ${_lista.length} títulos a menos de 2 km',
               onBack: () => Navigator.of(context).maybePop(),
@@ -94,45 +107,63 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
               child: RodapeTextField(
                 label: 'Adicionar título',
                 controller: _searchController,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => thr.throttle(
+                  () => setState(() {
+                    _tarefaAtual = _obterLivros();
+                  }),
+                ),
               ),
             ),
-            if (_sugestoes.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
-                  border: Border.all(color: AppColors.borderHairline),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final b in _sugestoes)
-                      ListTile(
-                        dense: true,
-                        title: Text(
-                          b.titulo,
-                          style: AppTextStyles.sans(
-                            fontWeight: FontWeight.w600,
+            FutureBuilder(
+              future: _tarefaAtual,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  final data = snapshot.data;
+
+                  if (data == null) {
+                    return Column();
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceCard,
+                      border: Border.all(color: AppColors.borderHairline),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final b in data)
+                          ListTile(
+                            dense: true,
+                            title: Text(
+                              b.titulo,
+                              style: AppTextStyles.sans(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              b.autor,
+                              style: AppTextStyles.sans(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.add_circle_outline,
+                              color: AppColors.spineTeal,
+                            ),
+                            onTap: () => _adicionar(b),
                           ),
-                        ),
-                        subtitle: Text(
-                          b.autor,
-                          style: AppTextStyles.sans(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.add_circle_outline,
-                          color: AppColors.spineTeal,
-                        ),
-                        onTap: () => _adicionar(b),
-                      ),
-                  ],
-                ),
-              ),
+                      ],
+                    ),
+                  );
+                }
+
+                return Text("Loading...");
+              },
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -148,7 +179,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                   const SizedBox(height: 12),
                   for (final book in _lista) ...[
                     Opacity(
-                      opacity: book.exemplares == 0 ? 0.6 : 1,
+                      opacity: book.exemplaresCount == 0 ? 0.6 : 1,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -157,10 +188,10 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                               onTap: () => _abrirDetalhes(book),
                               child: BookRow(
                                 book: book,
-                                coverWidth: book.exemplares == 0 ? 48 : 72,
-                                metaLine: book.exemplares == 0
+                                coverWidth: book.exemplaresCount == 0 ? 48 : 72,
+                                metaLine: book.exemplaresCount == 0
                                     ? 'NINGUÉM TEM AINDA — AVISAMOS QUANDO APARECER'
-                                    : '${book.exemplares} EXEMPLARES · ${book.distanciaLabel} · ENTREGA ${book.freteLabel}',
+                                    : '${book.exemplares} EXEMPLARES · ${book.frete}',
                               ),
                             ),
                           ),
@@ -209,10 +240,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                   RodapeButton(
                     label: 'Criar conta',
                     variant: RodapeButtonVariant.accent,
-                    onPressed: () => Navigator.of(context).pushNamed(
-                      '/phone',
-                      arguments: const PhoneStepArgs(isLogin: false),
-                    ),
+                    onPressed: _salvar,
                   ),
                 ],
               ),

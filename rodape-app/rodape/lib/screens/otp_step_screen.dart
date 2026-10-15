@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:rodape/models/onboarding_args.dart';
 
 import '../helpers/auth_helper.dart';
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/otp_input_field.dart';
@@ -134,7 +134,10 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
                         style: TextButton.styleFrom(padding: EdgeInsets.zero),
                         child: Text(
                           'Corrigir',
-                          style: AppTextStyles.mono(fontSize: 11, letterSpacing: 1),
+                          style: AppTextStyles.mono(
+                            fontSize: 11,
+                            letterSpacing: 1,
+                          ),
                         ),
                       ),
                     ],
@@ -153,7 +156,10 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _erro!,
-                      style: AppTextStyles.sans(fontSize: 12, color: AppColors.stampRed600),
+                      style: AppTextStyles.sans(
+                        fontSize: 12,
+                        color: AppColors.stampRed600,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -173,7 +179,9 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
                       podeReenviar
                           ? TextButton(
                               onPressed: _reenviar,
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
                               child: Text(
                                 'Reenviar código',
                                 style: AppTextStyles.mono(
@@ -197,7 +205,10 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
                   const SizedBox(height: 18),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceSunken,
                       borderRadius: BorderRadius.circular(3),
@@ -218,7 +229,10 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
                         Text(
                           'Código incorreto: confira os 6 dígitos do SMS.\n'
                           'Código expirado: peça outro, chega em segundos.',
-                          style: AppTextStyles.sans(fontSize: 13, color: AppColors.ink700),
+                          style: AppTextStyles.sans(
+                            fontSize: 13,
+                            color: AppColors.ink700,
+                          ),
                         ),
                       ],
                     ),
@@ -230,11 +244,15 @@ class _OtpStepScreenState extends State<OtpStepScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
-                border: Border(top: BorderSide(color: AppColors.borderHairline)),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderHairline),
+                ),
               ),
               child: RodapeButton(
                 label: _verificando ? 'Confirmando…' : 'Confirmar código',
-                onPressed: (_codigo.length == 6 && !_verificando) ? _confirmar : null,
+                onPressed: (_codigo.length == 6 && !_verificando)
+                    ? _confirmar
+                    : null,
               ),
             ),
           ],

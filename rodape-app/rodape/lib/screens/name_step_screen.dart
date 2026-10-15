@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/desejo.dart';
+import 'package:rodape/models/onboarding_args.dart';
+import 'package:rodape/services/auth_service.dart';
+import 'package:rodape/services/desejo_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/public_profile_badge.dart';
@@ -53,7 +56,16 @@ class _NameStepScreenState extends State<NameStepScreen> {
     ProfileService.registerModel.nome = nome;
     ProfileService.registerModel.sobrenome = sobrenome;
 
-    await ProfileService.cadastrarUsuario();
+    AuthService.loggedUser = await ProfileService.cadastrarUsuario();
+    if (AuthService.loggedUser?.id != null) {
+      await DesejoService.removerDesejos(AuthService.loggedUser!);
+      final listaDesejos = ProfileService.registerModel.livros
+          .map(
+            (l) => Desejo(livroId: l.id, userId: AuthService.loggedUser!.id!),
+          )
+          .toList();
+      await DesejoService.adicionarDesejos(listaDesejos);
+    }
 
     if (!mounted) {
       return;

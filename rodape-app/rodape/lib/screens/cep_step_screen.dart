@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/address.dart';
+import 'package:rodape/services/cep_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
 import '../helpers/helper_pref.dart';
 import '../helpers/input_formatters.dart';
-import '../helpers/models/cep_info.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/rodape_button.dart';
@@ -24,7 +25,7 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
   bool _loading = false;
   String? _errorText;
-  CepInfo? _resultado;
+  Address? _resultado;
 
   @override
   void dispose() {
@@ -40,10 +41,13 @@ class _CepStepScreenState extends State<CepStepScreen> {
     });
 
     try {
-      final info = await AuthHelper.lookupCep(cep);
+      final address = await CepService.obterInformacoesCep(cep);
       if (!mounted) return;
-      await HelperPref.saveCep(info.cep);
-      setState(() => _resultado = info);
+      if (address == null) {
+        return;
+      }
+      await HelperPref.saveCep(cep);
+      setState(() => _resultado = address);
     } on InvalidCepException catch (e) {
       if (!mounted) return;
       setState(() => _errorText = e.message);
@@ -147,20 +151,20 @@ class _CepStepScreenState extends State<CepStepScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _resultado!.enderecoLabel,
+                                  _resultado!.street,
                                   style: AppTextStyles.sans(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Text(
-                                  _resultado!.densidadeLabel.toUpperCase(),
-                                  style: AppTextStyles.mono(
-                                    fontSize: 11,
-                                    color: AppColors.spineTeal,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
+                                // Text( TODO
+                                // _resultado!.densidadeLabel.toUpperCase(),
+                                // style: AppTextStyles.mono(
+                                // fontSize: 11,
+                                // color: AppColors.spineTeal,
+                                // letterSpacing: 0.6,
+                                // ),
+                                // ),
                               ],
                             ),
                           ),

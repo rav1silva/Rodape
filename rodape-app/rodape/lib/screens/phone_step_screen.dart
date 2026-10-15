@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/onboarding_args.dart';
+import 'package:rodape/services/auth_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
 import '../helpers/input_formatters.dart';
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/rodape_button.dart';
@@ -38,8 +39,20 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
 
   Future<void> _enviarCodigo() async {
     setState(() => _enviando = true);
-    final telefone = '${_ddiController.text} ${_numeroController.text}';
-    final codigo = await AuthHelper.sendSmsCode(telefone);
+    final telefone = '${_ddiController.text}${_numeroController.text}';
+
+    var sendSms = true;
+    if (widget.args.isLogin) {
+      AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      if (AuthService.loggedUser == null) {
+        sendSms = false;
+      }
+    }
+
+    String? codigo;
+    if (sendSms) {
+      codigo = await AuthHelper.sendSmsCode(telefone);
+    }
     if (!mounted) return;
     setState(() => _enviando = false);
 
@@ -47,8 +60,8 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text('Código de teste (mock): $codigo')));
 
-    ProfileService.registerModel.ddd = _ddiController.text;
-    ProfileService.registerModel.numeroCelular = _numeroController.text;
+    ProfileService.registerModel.telefone =
+        "${_ddiController.text}${_numeroController.text}";
 
     Navigator.of(context).pushNamed(
       '/otp',

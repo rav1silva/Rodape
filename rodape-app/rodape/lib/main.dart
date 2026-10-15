@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:rodape/models/address.dart';
+import 'package:rodape/models/onboarding_args.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'helpers/helper_pref.dart';
-import 'helpers/models/cep_info.dart';
-import 'helpers/models/onboarding_args.dart';
 import 'screens/cep_step_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/name_step_screen.dart';
@@ -48,9 +48,6 @@ Future<void> main() async {
     publishableKey: dotenv.get("SUPABASE_KEY"),
   );
 
-  await HelperPref.clearAuthToken();
-  await HelperPref.setOnboardingDone(false);
-
   final onboardingConcluido = await HelperPref.isOnboardingDone();
   runApp(
     RodapeApp(
@@ -84,7 +81,7 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
     case AppRoutes.nearbyBooks:
       return _buildRoute(
         settings,
-        NearbyBooksStepScreen(cepInfo: settings.arguments as CepInfo),
+        NearbyBooksStepScreen(cepInfo: settings.arguments as Address),
       );
 
     case AppRoutes.phone:
