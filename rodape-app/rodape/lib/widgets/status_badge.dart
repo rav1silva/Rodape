@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/exemplar_status.dart';
 
-import '../helpers/models/book_status.dart';
 import '../theme/app_text_styles.dart';
 
 /// Selo de estado de um exemplar (SeloEstado): disponível / reservado /
@@ -8,7 +8,7 @@ import '../theme/app_text_styles.dart';
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});
 
-  final BookStatus status;
+  final ExemplarStatus status;
 
   @override
   Widget build(BuildContext context) {
