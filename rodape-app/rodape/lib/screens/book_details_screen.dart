@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/livro.dart';
 
-import '../helpers/models/book.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/book_row.dart';
@@ -8,7 +8,7 @@ import '../widgets/book_row.dart';
 class BookDetailsScreen extends StatelessWidget {
   const BookDetailsScreen({super.key, required this.book});
 
-  final Book book;
+  final Livro book;
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +75,10 @@ class BookDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Estado de conservação: ${book.estadoConservacao}\n'
-                    'Exemplares por perto: ${book.exemplares}\n'
-                    '${book.distanciaKm != null ? 'Distância: ${book.distanciaLabel}\n' : ''}'
-                    '${book.freteValor != null ? 'Frete: ${book.freteLabel}' : ''}',
+                    'Estado de conservação: ${book.estadoDeConservacao}\n'
+                    'Exemplares por perto: ${book.exemplares?.length ?? 0}\n'
+                    '${book.distancia != null ? 'Distância: ${book.distancia} KM\n' : ''}'
+                    '${book.frete != null ? 'Frete: ${book.frete}' : ''}',
                     style: AppTextStyles.sans(
                       fontSize: 13,
                       color: AppColors.ink700,

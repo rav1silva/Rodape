@@ -76,7 +76,9 @@ class AuthHelper {
   static Future<String> sendSmsCode(String telefone) async {
     await Future.delayed(const Duration(milliseconds: 1100));
     _ultimoCodigoEnviado = (100000 + Random().nextInt(900000)).toString();
-    debugPrint('[MOCK SMS] Código enviado para $telefone: $_ultimoCodigoEnviado');
+    debugPrint(
+      '[MOCK SMS] Código enviado para $telefone: $_ultimoCodigoEnviado',
+    );
     return _ultimoCodigoEnviado!;
   }
 
@@ -92,14 +94,18 @@ class AuthHelper {
   }) async {
     await Future.delayed(const Duration(milliseconds: 600));
     debugPrint('[MOCK AUTH] Conta criada: $nome $sobrenome · $telefone');
-    await HelperPref.saveAuthToken('mock-token-${DateTime.now().millisecondsSinceEpoch}');
+    await HelperPref.saveAuthToken(
+      'mock-token-${DateTime.now().millisecondsSinceEpoch}',
+    );
     await HelperPref.setOnboardingDone(true);
   }
 
   static Future<void> loginExisting({required String telefone}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     debugPrint('[MOCK AUTH] Login efetuado: $telefone');
-    await HelperPref.saveAuthToken('mock-token-${DateTime.now().millisecondsSinceEpoch}');
+    await HelperPref.saveAuthToken(
+      'mock-token-${DateTime.now().millisecondsSinceEpoch}',
+    );
     await HelperPref.setOnboardingDone(true);
   }
 }

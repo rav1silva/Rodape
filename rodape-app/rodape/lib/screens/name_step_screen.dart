@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/desejo.dart';
+import 'package:rodape/models/onboarding_args.dart';
+import 'package:rodape/services/auth_service.dart';
+import 'package:rodape/services/desejo_service.dart';
+import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/public_profile_badge.dart';
@@ -25,7 +29,8 @@ class _NameStepScreenState extends State<NameStepScreen> {
   bool _salvando = false;
 
   bool get _valido =>
-      _nomeController.text.trim().isNotEmpty && _sobrenomeController.text.trim().isNotEmpty;
+      _nomeController.text.trim().isNotEmpty &&
+      _sobrenomeController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -39,14 +44,39 @@ class _NameStepScreenState extends State<NameStepScreen> {
     final nome = _nomeController.text.trim();
     final sobrenome = _sobrenomeController.text.trim();
 
-    await AuthHelper.createAccount(nome: nome, sobrenome: sobrenome, telefone: widget.telefone);
+    await AuthHelper.createAccount(
+      nome: nome,
+      sobrenome: sobrenome,
+      telefone: widget.telefone,
+    );
 
     if (!mounted) return;
     setState(() => _salvando = false);
 
+    ProfileService.registerModel.nome = nome;
+    ProfileService.registerModel.sobrenome = sobrenome;
+
+    AuthService.loggedUser = await ProfileService.cadastrarUsuario();
+    if (AuthService.loggedUser?.id != null) {
+      await DesejoService.removerDesejos(AuthService.loggedUser!);
+      final listaDesejos = ProfileService.registerModel.livros
+          .map(
+            (l) => Desejo(livroId: l.id, userId: AuthService.loggedUser!.id!),
+          )
+          .toList();
+      await DesejoService.adicionarDesejos(listaDesejos);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     Navigator.of(context).pushNamed(
       '/onboarding-complete',
-      arguments: OnboardingCompleteArgs(nome: nome, inicial: sobrenome[0].toUpperCase()),
+      arguments: OnboardingCompleteArgs(
+        nome: nome,
+        inicial: sobrenome[0].toUpperCase(),
+      ),
     );
   }
 
@@ -100,7 +130,10 @@ class _NameStepScreenState extends State<NameStepScreen> {
                   Text(
                     'Seu sobrenome completo nunca aparece para outra pessoa. Só a '
                     'inicial, do começo ao fim da troca.',
-                    style: AppTextStyles.sans(fontSize: 14, color: AppColors.ink700),
+                    style: AppTextStyles.sans(
+                      fontSize: 14,
+                      color: AppColors.ink700,
+                    ),
                   ),
                 ],
               ),
@@ -109,7 +142,9 @@ class _NameStepScreenState extends State<NameStepScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
-                border: Border(top: BorderSide(color: AppColors.borderHairline)),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderHairline),
+                ),
               ),
               child: RodapeButton(
                 label: _salvando ? 'Criando conta…' : 'Continuar',

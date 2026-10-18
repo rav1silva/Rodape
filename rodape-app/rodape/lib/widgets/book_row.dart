@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/livro.dart';
 
-import '../helpers/models/book.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'book_cover.dart';
@@ -9,6 +9,20 @@ import 'book_cover.dart';
 /// capa + título/autor/metadados, com slots opcionais para um leading
 /// (índice de prioridade) e um rodapé (botão de ação).
 class BookRow extends StatelessWidget {
+  final Livro book;
+
+  final double coverWidth;
+  final Widget? leading;
+
+  /// Linha mono teal com distância/crédito/frete.
+  final String? metaLine;
+
+  /// Substitui o autor padrão quando informado (ex.: "estado: bom").
+  final String? subtitle;
+
+  final Widget? footer;
+  final double titleFontSize;
+  final CrossAxisAlignment crossAxisAlignment;
   const BookRow({
     super.key,
     required this.book,
@@ -20,19 +34,6 @@ class BookRow extends StatelessWidget {
     this.titleFontSize = 17,
     this.crossAxisAlignment = CrossAxisAlignment.center,
   });
-
-  final Book book;
-  final double coverWidth;
-  final Widget? leading;
-
-  /// Linha mono teal com distância/crédito/frete.
-  final String? metaLine;
-
-  /// Substitui o autor padrão quando informado (ex.: "estado: bom").
-  final String? subtitle;
-  final Widget? footer;
-  final double titleFontSize;
-  final CrossAxisAlignment crossAxisAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -76,10 +77,7 @@ class BookRow extends StatelessWidget {
                   ),
                 ),
               ],
-              if (footer != null) ...[
-                const SizedBox(height: 8),
-                footer!,
-              ],
+              if (footer != null) ...[const SizedBox(height: 8), footer!],
             ],
           ),
         ),

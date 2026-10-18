@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/models/onboarding_args.dart';
 
-import '../helpers/models/onboarding_args.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/rodape_button.dart';
@@ -16,8 +16,10 @@ class OnboardingCompleteScreen extends StatelessWidget {
   final OnboardingCompleteArgs args;
 
   void _escanearLivroMock(BuildContext context) {
-    debugPrint('[MOCK SCANNER] Escanear livro acionado — câmera/leitor de '
-        'código de barras ainda não implementados.');
+    debugPrint(
+      '[MOCK SCANNER] Escanear livro acionado — câmera/leitor de '
+      'código de barras ainda não implementados.',
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Escaneamento de código de barras — em breve (mock).'),
@@ -56,7 +58,10 @@ class OnboardingCompleteScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     '3 pessoas a 1 km querem livros que podem estar na sua estante',
-                    style: AppTextStyles.display(fontSize: 30, color: AppColors.paper050),
+                    style: AppTextStyles.display(
+                      fontSize: 30,
+                      color: AppColors.paper050,
+                    ),
                   ),
                 ],
               ),
@@ -86,12 +91,18 @@ class OnboardingCompleteScreen extends StatelessWidget {
                     'Escaneie o código de barras dos livros que você já leu. Cada '
                     'exemplar entra na rede na hora e pode fechar uma roda hoje.',
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.sans(fontSize: 15, color: AppColors.ink700),
+                    style: AppTextStyles.sans(
+                      fontSize: 15,
+                      color: AppColors.ink700,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceSunken,
                       borderRadius: BorderRadius.circular(3),
@@ -112,7 +123,10 @@ class OnboardingCompleteScreen extends StatelessWidget {
                         Text(
                           'Cadastrar não gera crédito. O crédito entra quando você '
                           'entrega para quem pediu o título.',
-                          style: AppTextStyles.sans(fontSize: 13, color: AppColors.ink700),
+                          style: AppTextStyles.sans(
+                            fontSize: 13,
+                            color: AppColors.ink700,
+                          ),
                         ),
                       ],
                     ),
@@ -124,7 +138,9 @@ class OnboardingCompleteScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
-                border: Border(top: BorderSide(color: AppColors.borderHairline)),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderHairline),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

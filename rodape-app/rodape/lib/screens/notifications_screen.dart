@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:rodape/extensions/datetime_extensions.dart';
+import 'package:rodape/models/notificacao.dart';
+import 'package:string_to_icon/string_to_icon.dart';
 
-import '../helpers/mocks/mock_notifications.dart';
-import '../helpers/models/app_notification.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/rodape_header.dart';
 
 class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, required this.notificacoes});
+
+  final List<Notificacao> notificacoes;
 
   @override
   Widget build(BuildContext context) {
-    final items = MockNotifications.all;
-    final urgentes = items.where((n) => n.urgente).length;
+    final urgentes = notificacoes.where((n) => n.urgente).length;
 
     return Scaffold(
       backgroundColor: AppColors.paper100,
@@ -26,10 +28,11 @@ class NotificationsScreen extends StatelessWidget {
             ),
             Expanded(
               child: ListView.separated(
-                itemCount: items.length,
+                itemCount: notificacoes.length,
                 separatorBuilder: (_, _) =>
                     const Divider(height: 1, color: AppColors.borderHairline),
-                itemBuilder: (context, index) => _NotificationTile(item: items[index]),
+                itemBuilder: (context, index) =>
+                    _NotificationTile(item: notificacoes[index]),
               ),
             ),
           ],
@@ -42,7 +45,7 @@ class NotificationsScreen extends StatelessWidget {
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({required this.item});
 
-  final AppNotification item;
+  final Notificacao item;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +63,11 @@ class _NotificationTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(item.icon, size: 17, color: item.color),
+          Icon(
+            IconMapper.getIconData(item.icone),
+            size: 17,
+            color: Color(int.parse(item.cor)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -73,13 +80,13 @@ class _NotificationTile extends StatelessWidget {
                         item.titulo.toUpperCase(),
                         style: AppTextStyles.mono(
                           fontSize: 10,
-                          color: item.color,
+                          color: Color(int.parse(item.cor)),
                           letterSpacing: 1.4,
                         ),
                       ),
                     ),
                     Text(
-                      item.tempo,
+                      "há ${item.createdAt.getTimeDiff()}",
                       style: AppTextStyles.mono(
                         fontSize: 10,
                         color: AppColors.textFaint,
@@ -92,8 +99,12 @@ class _NotificationTile extends StatelessWidget {
                   item.mensagem,
                   style: AppTextStyles.sans(
                     fontSize: item.urgente ? 15 : 14,
-                    fontWeight: item.urgente ? FontWeight.w600 : FontWeight.w400,
-                    color: item.urgente ? AppColors.ink900 : AppColors.textMuted,
+                    fontWeight: item.urgente
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                    color: item.urgente
+                        ? AppColors.ink900
+                        : AppColors.textMuted,
                     height: 1.35,
                   ),
                 ),
