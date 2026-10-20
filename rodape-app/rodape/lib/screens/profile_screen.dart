@@ -10,6 +10,7 @@ import 'package:rodape/services/exemplar_service.dart';
 import 'package:rodape/services/livro_service.dart';
 import 'package:rodape/services/pedido_service.dart';
 
+import '../helpers/auth_helper.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/carimbo_stamp.dart';
@@ -324,7 +325,14 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () async {
+                  await AuthHelper.logout();
+                  if (!context.mounted) return;
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pushNamedAndRemoveUntil('/', (route) => false);
+                },
                 icon: const Icon(
                   Icons.settings_outlined,
                   color: AppColors.paper100,

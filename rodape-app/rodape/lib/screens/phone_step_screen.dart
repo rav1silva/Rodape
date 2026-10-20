@@ -69,6 +69,35 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
     );
   }
 
+  /// Atalho de teste: segue o mesmo caminho de "Enviar código", mas sem
+  /// SMS/OTP — login vai direto para a Home, cadastro vai para o nome.
+  Future<void> _continuarComGoogle() async {
+
+    setState(() => _enviando = true);
+    final telefone = '${_ddiController.text}${_numeroController.text}';
+    debugPrint('[MOCK AUTH] Google: pulando código para $telefone');
+
+    if (widget.args.isLogin) {
+      AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      if (!mounted) return;
+      if (AuthService.loggedUser == null) {
+        setState(() => _enviando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhuma conta com esse número.')),
+        );
+        return;
+      }
+      await AuthHelper.loginExisting(telefone: telefone);
+      if (!mounted) return;
+      setState(() => _enviando = false);
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    } else {
+      ProfileService.registerModel.telefone = telefone;
+      setState(() => _enviando = false);
+      Navigator.of(context).pushNamed('/name', arguments: telefone);
+    }
+  }
+
   void _atalhoSocial(String provedor) {
     debugPrint('[MOCK AUTH] Atalho "$provedor" acionado — em breve.');
     ScaffoldMessenger.of(context).showSnackBar(
@@ -161,7 +190,7 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                           label: 'Continuar com Google',
                           variant: RodapeButtonVariant.quiet,
                           size: RodapeButtonSize.sm,
-                          onPressed: () => _atalhoSocial('Google'),
+                          onPressed: _enviando ? null : _continuarComGoogle,
                         ),
                         const SizedBox(height: 8),
                         RodapeButton(

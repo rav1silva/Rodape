@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Wrapper fino sobre [SharedPreferences] para preferências locais simples
@@ -42,5 +43,11 @@ class HelperPref {
   static Future<String?> getCep() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyCep);
+  }
+  
+  static Future<void> logout() async {
+    debugPrint('[MOCK AUTH] Logout');
+    await HelperPref.clearAuthToken();
+    await HelperPref.setOnboardingDone(false);
   }
 }

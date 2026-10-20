@@ -1,6 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:rodape/models/profile.dart';
+import 'package:rodape/services/auth_service.dart';
+import 'package:rodape/services/profile_service.dart';
 
 import 'helper_pref.dart';
 import 'models/cep_info.dart';
@@ -107,5 +110,16 @@ class AuthHelper {
       'mock-token-${DateTime.now().millisecondsSinceEpoch}',
     );
     await HelperPref.setOnboardingDone(true);
+  }
+
+  /// Encerra a sessão: limpa o usuário em memória, o rascunho de cadastro,
+  /// o token e a flag de onboarding (próxima abertura volta para "/").
+  static Future<void> logout() async {
+    debugPrint('[MOCK AUTH] Logout');
+    AuthService.loggedUser = null;
+    ProfileService.registerModel = Profile.blank();
+    _ultimoCodigoEnviado = null;
+    await HelperPref.clearAuthToken();
+    await HelperPref.setOnboardingDone(false);
   }
 }
