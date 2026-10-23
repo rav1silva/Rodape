@@ -16,7 +16,7 @@ class Desejo {
   Livro? livro;
 
   Map<String, dynamic> toMap() {
-    return {"livro_id": livroId, "user_id": userId, "posicao": posicao};
+    return {"id": id,"livro_id": livroId, "user_id": userId, "posicao": posicao};
   }
 
   factory Desejo.fromMap(Map<String, dynamic> map) => Desejo(

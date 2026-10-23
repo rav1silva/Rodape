@@ -19,6 +19,10 @@ import 'screens/shelf_screen.dart';
 import 'screens/wishlist_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/rodape_bottom_nav.dart';
+import 'data/local_db.dart';
+import 'services/livro_service.dart';
+import 'services/net_service.dart';
+import 'widgets/offline_banner.dart';
 
 /// Nomes de rota do app — cadastro/login (fluxo de onboarding) + a casca
 /// principal com abas ("/home").
@@ -42,11 +46,17 @@ Future<void> main() async {
   // onboarding de novo — só o gate final "/home".
 
   await dotenv.load();
+  await LocalDb.db;
 
   await Supabase.initialize(
     url: dotenv.get("SUPABASE_URL"),
     publishableKey: dotenv.get("SUPABASE_KEY"),
   );
+
+  await Net.i.init();
+  await LivroService.atualizarCache();
+  final locais = await (await LocalDb.db).query('livros'); // só para conferir
+  debugPrint('livros no aparelho: ${locais.length}');      // remova depois
 
   await HelperPref.clearAuthToken();
   await HelperPref.setOnboardingDone(false);
@@ -71,7 +81,12 @@ class RodapeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       initialRoute: initialRoute,
-      onGenerateRoute: _onGenerateRoute,
+      onGenerateRoute: _onGenerateRoute,      builder: (context, child) => Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(child: child ?? const SizedBox.shrink()),
+        ],
+      ),
     );
   }
 }
