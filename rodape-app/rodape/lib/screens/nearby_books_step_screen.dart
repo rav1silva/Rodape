@@ -44,7 +44,14 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
   }
 
   Future<void> _adicionar(Livro book) async {
-    book.exemplares = await ExemplarService.obterExemplaresLivro(book);
+    // Sem internet o livro entra na lista mesmo assim (veio do catálogo
+    // local); só fica sem os dados de exemplares próximos.
+    try {
+      book.exemplares = await ExemplarService.obterExemplaresLivro(book);
+    } catch (e) {
+      debugPrint('[EXEMPLARES] Falha de rede: $e');
+    }
+    if (!mounted) return;
     setState(() {
       _lista.add(book);
       _searchController.clear();

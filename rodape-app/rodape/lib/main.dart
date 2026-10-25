@@ -81,12 +81,9 @@ class RodapeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       initialRoute: initialRoute,
-      onGenerateRoute: _onGenerateRoute,      builder: (context, child) => Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(child: child ?? const SizedBox.shrink()),
-        ],
-      ),
+      onGenerateRoute: _onGenerateRoute,
+      builder: (context, child) =>
+          OfflineBanner(child: child ?? const SizedBox.shrink()),
     );
   }
 }

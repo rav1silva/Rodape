@@ -10,6 +10,10 @@ class Net extends ChangeNotifier {
 
   bool online = true;
 
+  /// Mensagem padrão quando uma chamada falha por falta de conexão.
+  static const falhaMsg =
+      'Não foi possível conectar. Verifique sua internet e tente de novo.';
+
   Future<void> init() async {
     online = await InternetConnection().hasInternetAccess;
     notifyListeners();

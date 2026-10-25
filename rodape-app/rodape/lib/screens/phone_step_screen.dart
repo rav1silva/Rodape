@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rodape/models/onboarding_args.dart';
 import 'package:rodape/services/auth_service.dart';
+import 'package:rodape/services/net_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
@@ -43,7 +44,12 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
 
     var sendSms = true;
     if (widget.args.isLogin) {
-      AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      try {
+        AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      } catch (e) {
+        _falhaDeRede(e);
+        return;
+      }
       if (AuthService.loggedUser == null) {
         sendSms = false;
       }
@@ -78,7 +84,12 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
     debugPrint('[MOCK AUTH] Google: pulando código para $telefone');
 
     if (widget.args.isLogin) {
-      AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      try {
+        AuthService.loggedUser = await ProfileService.obterUsuario(telefone);
+      } catch (e) {
+        _falhaDeRede(e);
+        return;
+      }
       if (!mounted) return;
       if (AuthService.loggedUser == null) {
         setState(() => _enviando = false);
@@ -96,6 +107,16 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
       setState(() => _enviando = false);
       Navigator.of(context).pushNamed('/name', arguments: telefone);
     }
+  }
+
+  /// A consulta ao Supabase falhou (sem internet): destrava o botão e avisa.
+  void _falhaDeRede(Object e) {
+    debugPrint('[AUTH] Falha de rede: $e');
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text(Net.falhaMsg)));
   }
 
   void _atalhoSocial(String provedor) {
@@ -186,18 +207,28 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        RodapeButton(
-                          label: 'Continuar com Google',
-                          variant: RodapeButtonVariant.quiet,
-                          size: RodapeButtonSize.sm,
-                          onPressed: _enviando ? null : _continuarComGoogle,
+                        ListenableBuilder(
+                          listenable: Net.i,
+                          builder: (context, _) => RodapeButton(
+                            label: 'Continuar com Google',
+                            variant: RodapeButtonVariant.quiet,
+                            size: RodapeButtonSize.sm,
+                            onPressed: (_enviando || !Net.i.online)
+                                ? null
+                                : _continuarComGoogle,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        RodapeButton(
-                          label: 'Continuar com Apple',
-                          variant: RodapeButtonVariant.quiet,
-                          size: RodapeButtonSize.sm,
-                          onPressed: () => _atalhoSocial('Apple'),
+                        ListenableBuilder(
+                          listenable: Net.i,
+                          builder: (context, _) => RodapeButton(
+                            label: 'Continuar com Apple',
+                            variant: RodapeButtonVariant.quiet,
+                            size: RodapeButtonSize.sm,
+                            onPressed: Net.i.online
+                                ? () => _atalhoSocial('Apple')
+                                : null,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Text(
@@ -221,9 +252,14 @@ class _PhoneStepScreenState extends State<PhoneStepScreen> {
                   top: BorderSide(color: AppColors.borderHairline),
                 ),
               ),
-              child: RodapeButton(
-                label: _enviando ? 'Enviando…' : 'Enviar código',
-                onPressed: (!_numeroValido || _enviando) ? null : _enviarCodigo,
+              child: ListenableBuilder(
+                listenable: Net.i,
+                builder: (context, _) => RodapeButton(
+                  label: _enviando ? 'Enviando…' : 'Enviar código',
+                  onPressed: (!_numeroValido || _enviando || !Net.i.online)
+                      ? null
+                      : _enviarCodigo,
+                ),
               ),
             ),
           ],
