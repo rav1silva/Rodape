@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rodape/models/address.dart';
 import 'package:rodape/services/cep_service.dart';
+import 'package:rodape/services/net_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
@@ -27,6 +28,9 @@ class _CepStepScreenState extends State<CepStepScreen> {
   String? _errorText;
   Address? _resultado;
 
+  /// A última busca falhou por falta de conexão (não é "fora de área").
+  bool _semInternet = false;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -34,8 +38,18 @@ class _CepStepScreenState extends State<CepStepScreen> {
   }
 
   Future<void> _buscarCep(String cep) async {
+    if (!Net.i.online) {
+      setState(() {
+        _semInternet = true;
+        _errorText = 'Sem internet para consultar o CEP.';
+        _resultado = null;
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
+      _semInternet = false;
       _errorText = null;
       _resultado = null;
     });
@@ -54,6 +68,13 @@ class _CepStepScreenState extends State<CepStepScreen> {
     } on ServiceAreaException catch (e) {
       if (!mounted) return;
       setState(() => _errorText = e.message);
+    } catch (e) {
+      debugPrint('[CEP] Falha de rede: $e');
+      if (!mounted) return;
+      setState(() {
+        _semInternet = true;
+        _errorText = Net.falhaMsg;
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -77,8 +98,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
   @override
   Widget build(BuildContext context) {
     final digits = _controller.text.replaceAll(RegExp(r'\D'), '');
-    final foraDeArea =
-        _errorText != null && digits.length == 8 && _resultado == null;
+    final foraDeArea = !_semInternet &&
+        _errorText != null &&
+        digits.length == 8 &&
+        _resultado == null;
 
     return Scaffold(
       backgroundColor: AppColors.paper100,
@@ -172,11 +195,16 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       ),
                     ),
                   const SizedBox(height: 14),
-                  RodapeButton(
-                    label: 'Usar minha localização',
-                    variant: RodapeButtonVariant.quiet,
-                    icon: Icons.location_on_outlined,
-                    onPressed: _loading ? null : _usarLocalizacao,
+                  ListenableBuilder(
+                    listenable: Net.i,
+                    builder: (context, _) => RodapeButton(
+                      label: 'Usar minha localização',
+                      variant: RodapeButtonVariant.quiet,
+                      icon: Icons.location_on_outlined,
+                      onPressed: (_loading || !Net.i.online)
+                          ? null
+                          : _usarLocalizacao,
+                    ),
                   ),
                   if (foraDeArea) ...[
                     const SizedBox(height: 18),

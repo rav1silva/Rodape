@@ -3,6 +3,7 @@ import 'package:rodape/models/desejo.dart';
 import 'package:rodape/models/onboarding_args.dart';
 import 'package:rodape/services/auth_service.dart';
 import 'package:rodape/services/desejo_service.dart';
+import 'package:rodape/services/net_service.dart';
 import 'package:rodape/services/profile_service.dart';
 
 import '../helpers/auth_helper.dart';
@@ -44,6 +45,32 @@ class _NameStepScreenState extends State<NameStepScreen> {
     final nome = _nomeController.text.trim();
     final sobrenome = _sobrenomeController.text.trim();
 
+    ProfileService.registerModel.nome = nome;
+    ProfileService.registerModel.sobrenome = sobrenome;
+
+    // Grava no Supabase primeiro: sem internet a conta não é criada e o
+    // onboarding não é marcado como concluído.
+    try {
+      AuthService.loggedUser = await ProfileService.cadastrarUsuario();
+      if (AuthService.loggedUser?.id != null) {
+        await DesejoService.removerDesejos(AuthService.loggedUser!);
+        final listaDesejos = ProfileService.registerModel.livros
+            .map(
+              (l) => Desejo(livroId: l.id, userId: AuthService.loggedUser!.id!),
+            )
+            .toList();
+        await DesejoService.adicionarDesejos(listaDesejos);
+      }
+    } catch (e) {
+      debugPrint('[AUTH] Falha ao criar conta: $e');
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(Net.falhaMsg)));
+      return;
+    }
+
     await AuthHelper.createAccount(
       nome: nome,
       sobrenome: sobrenome,
@@ -52,24 +79,6 @@ class _NameStepScreenState extends State<NameStepScreen> {
 
     if (!mounted) return;
     setState(() => _salvando = false);
-
-    ProfileService.registerModel.nome = nome;
-    ProfileService.registerModel.sobrenome = sobrenome;
-
-    AuthService.loggedUser = await ProfileService.cadastrarUsuario();
-    if (AuthService.loggedUser?.id != null) {
-      await DesejoService.removerDesejos(AuthService.loggedUser!);
-      final listaDesejos = ProfileService.registerModel.livros
-          .map(
-            (l) => Desejo(livroId: l.id, userId: AuthService.loggedUser!.id!),
-          )
-          .toList();
-      await DesejoService.adicionarDesejos(listaDesejos);
-    }
-
-    if (!mounted) {
-      return;
-    }
 
     Navigator.of(context).pushNamed(
       '/onboarding-complete',
@@ -146,9 +155,17 @@ class _NameStepScreenState extends State<NameStepScreen> {
                   top: BorderSide(color: AppColors.borderHairline),
                 ),
               ),
-              child: RodapeButton(
-                label: _salvando ? 'Criando conta…' : 'Continuar',
-                onPressed: (_valido && !_salvando) ? _continuar : null,
+              child: ListenableBuilder(
+                listenable: Net.i,
+                builder: (context, _) => Net.i.online
+                    ? RodapeButton(
+                        label: _salvando ? 'Criando conta…' : 'Continuar',
+                        onPressed: (_valido && !_salvando) ? _continuar : null,
+                      )
+                    : const RodapeButton(
+                        label: 'Sem internet',
+                        icon: Icons.wifi_off_rounded,
+                      ),
               ),
             ),
           ],
