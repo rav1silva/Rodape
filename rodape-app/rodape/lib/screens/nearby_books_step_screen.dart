@@ -32,10 +32,17 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
   Future<List<Livro>>? _tarefaAtual;
 
   final List<Livro> _lista = [];
-  Future<List<Livro>> _obterLivros() async {
-    final searchValue = _searchController.text;
-    return await LivroService.obterLivros(filtro: searchValue);
-  }
+
+@override
+void initState() {
+  super.initState();
+  _tarefaAtual = _obterLivros();
+}
+
+Future<List<Livro>> _obterLivros() async {
+  final searchValue = _searchController.text;
+  return await LivroService.obterLivros(filtro: searchValue);
+}
 
   void _remover(Livro book) {
     setState(() {
@@ -115,59 +122,81 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                 ),
               ),
             ),
-            FutureBuilder(
-              future: _tarefaAtual,
-              builder: (context, snapshot) {
-                if (_tarefaAtual == null) {
-                  return const SizedBox.shrink();
-                }
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Text('Loading...');
-                }
+          
+FutureBuilder<List<Livro>>(
+  future: _tarefaAtual,
+  builder: (context, snapshot) {
+    if (_tarefaAtual == null) {
+      return const SizedBox.shrink();
+    }
 
-                final data = snapshot.data;
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: CircularProgressIndicator(),
+      );
+    }
 
-                if (data == null) {
-                  return const SizedBox.shrink();
-                }
+    final data = snapshot.data;
 
-                return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      border: Border.all(color: AppColors.borderHairline),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final b in data.where((b) => !_lista.contains(b)))
-                          ListTile(
-                            dense: true,
-                            title: Text(
-                              b.titulo,
-                              style: AppTextStyles.sans(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Text(
-                              b.autor,
-                              style: AppTextStyles.sans(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            trailing: const Icon(
-                              Icons.add_circle_outline,
-                              color: AppColors.spineTeal,
-                            ),
-                            onTap: () => _adicionar(b),
-                          ),
-                      ],
-                    ),
-                  );
-              },
+    if (data == null) {
+      return const SizedBox.shrink();
+    }
+
+    final livrosDisponiveis = data
+        .where((b) => !_lista.contains(b))
+        .toList();
+
+    if (livrosDisponiveis.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final altura = (livrosDisponiveis.length * 68.0)
+        .clamp(0.0, 220.0);
+
+    return Container(
+      height: altura,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(
+          color: AppColors.borderHairline,
+        ),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: livrosDisponiveis.length,
+        itemBuilder: (context, index) {
+          final b = livrosDisponiveis[index];
+
+          return ListTile(
+            dense: true,
+            title: Text(
+              b.titulo,
+              style: AppTextStyles.sans(
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            subtitle: Text(
+              b.autor,
+              style: AppTextStyles.sans(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.add_circle_outline,
+              color: AppColors.spineTeal,
+            ),
+            onTap: () => _adicionar(b),
+          );
+        },
+      ),
+    );
+  },
+),
+
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
