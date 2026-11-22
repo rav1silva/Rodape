@@ -1,9 +1,12 @@
+
 import 'package:rodape/models/livro.dart';
 
 class Profile {
   Profile.blank();
+
   Profile({
     required this.id,
+    this.authUserId,
     required this.telefone,
     required this.nome,
     required this.sobrenome,
@@ -15,24 +18,41 @@ class Profile {
     required this.freteMaximo,
     this.createdAt,
     this.validadeCredito,
+    this.aceitaRetiradaPresencial = false,
+    this.pontoEncontro,
+    this.aceitaUber = false,
+    this.aceitaTransportadora = false,
   });
 
   String? id;
+  String? authUserId;
+
   List<Livro> livros = [];
+
   String telefone = "";
   String nome = "";
   String sobrenome = "";
   String cep = "";
+
   int saldoCredito = 0;
   int entregues = 0;
   int recebidos = 0;
   int rodas = 0;
+
   double freteMaximo = 25;
+
   DateTime? createdAt;
   DateTime? validadeCredito;
 
+  // Preferências de entrega
+  bool aceitaRetiradaPresencial = false;
+  String? pontoEncontro;
+  bool aceitaUber = false;
+  bool aceitaTransportadora = false;
+
   Map<String, dynamic> toMap() {
     return {
+      "auth_user_id": authUserId,
       "nome": nome,
       "sobrenome": sobrenome,
       "telefone": telefone,
@@ -42,22 +62,35 @@ class Profile {
       "recebidos": recebidos,
       "rodas": rodas,
       "frete_maximo": freteMaximo,
-      "validade_credito": validadeCredito,
+      "validade_credito": validadeCredito?.toIso8601String(),
+      "aceita_retirada_presencial": aceitaRetiradaPresencial,
+      "ponto_encontro": pontoEncontro,
+      "aceita_uber": aceitaUber,
+      "aceita_transportadora": aceitaTransportadora,
     };
   }
 
   factory Profile.fromMap(Map<String, dynamic> map) => Profile(
-    id: map["id"],
-    nome: map["nome"],
-    sobrenome: map["sobrenome"],
-    telefone: map["telefone"],
-    cep: map["cep"],
-    saldoCredito: map["saldo_credito"],
-    entregues: map["entregues"] ?? 0,
-    recebidos: map["recebidos"] ?? 0,
-    rodas: map["rodas"] ?? 0,
-    freteMaximo: map["frete_maximo"],
-    createdAt: DateTime.tryParse(map["created_at"]),
-    validadeCredito: map["validade_credito"],
+    id: map["id"]?.toString(),
+    authUserId: map["auth_user_id"]?.toString(),
+    nome: map["nome"] ?? "",
+    sobrenome: map["sobrenome"] ?? "",
+    telefone: map["telefone"] ?? "",
+    cep: map["cep"] ?? "",
+    saldoCredito: (map["saldo_credito"] as num?)?.toInt() ?? 0,
+    entregues: (map["entregues"] as num?)?.toInt() ?? 0,
+    recebidos: (map["recebidos"] as num?)?.toInt() ?? 0,
+    rodas: (map["rodas"] as num?)?.toInt() ?? 0,
+    freteMaximo: (map["frete_maximo"] as num?)?.toDouble() ?? 25,
+    createdAt: DateTime.tryParse(map["created_at"]?.toString() ?? ""),
+    validadeCredito: DateTime.tryParse(
+      map["validade_credito"]?.toString() ?? "",
+    ),
+    aceitaRetiradaPresencial:
+        map["aceita_retirada_presencial"] as bool? ?? false,
+    pontoEncontro: map["ponto_encontro"]?.toString(),
+    aceitaUber: map["aceita_uber"] as bool? ?? false,
+    aceitaTransportadora:
+        map["aceita_transportadora"] as bool? ?? false,
   );
 }

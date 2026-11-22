@@ -21,23 +21,52 @@ import 'notifications_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   late Future<List<Exemplar>> _obterLivrosDesejadosFuture;
   late Future<List<Notificacao>> _obterNotificacoesFuture;
   late Future<List<Exemplar>> _obterNextActionFuture;
+  void atualizarAoRetornar() {
+  setState(() {
+    _obterLivrosDesejadosFuture = _obterLivrosDesejados();
+    _obterNotificacoesFuture = _obterNotificacoes();
+    _obterNextActionFuture = _obterNextAction();
+  });
 
-  @override
-  void initState() {
-    super.initState();
+  _atualizarPerfil();
+}
+
+
+ @override
+void initState() {
+  super.initState();
+
+  _obterLivrosDesejadosFuture = _obterLivrosDesejados();
+  _obterNotificacoesFuture = _obterNotificacoes();
+  _obterNextActionFuture = _obterNextAction();
+
+  _atualizarPerfil();
+}
+Future<void> _atualizarPerfil() async {
+  final user = AuthService.loggedUser;
+
+  if (user == null || user.id == null) return;
+
+  try {
+    final atualizado =
+        await ProfileService.obterUsuarioPorId(user.id!);
+
+    if (!mounted || atualizado == null) return;
+
     setState(() {
-      _obterLivrosDesejadosFuture = _obterLivrosDesejados();
-      _obterNotificacoesFuture = _obterNotificacoes();
-      _obterNextActionFuture = _obterNextAction();
+      AuthService.loggedUser = atualizado;
     });
+  } catch (e) {
+    debugPrint('Erro ao atualizar perfil: $e');
   }
+}
 
   Future<List<Exemplar>> _obterLivrosDesejados() async {
     if (AuthService.loggedUser == null) {

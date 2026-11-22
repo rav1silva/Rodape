@@ -3,6 +3,8 @@ import 'package:rodape/models/livro.dart';
 import 'package:rodape/services/net_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LivroService {
   static Map<String, Object?> _linha(Map<String, dynamic> m) => {
@@ -78,15 +80,35 @@ class LivroService {
     return null;
   }
 
-  static Future<List<Livro>> obter3Ultimos() async {
-    final resultado = await Supabase.instance.client
-        .from("livros")
-        .select()
-        .order("id", ascending: false)
-        .limit(3);
+static Future<List<Livro>> obter3Ultimos() async {
+  if (Net.i.online) {
+    try {
+      final resultado = await Supabase.instance.client
+          .from("livros")
+          .select()
+          .order("created_at", ascending: false)
+          .limit(3);
 
-    return resultado.map(Livro.fromMap).toList();
+      await _salvar(
+        List<Map<String, dynamic>>.from(resultado),
+      );
+
+      return resultado.map(Livro.fromMap).toList();
+    } catch (e) {
+      // Se falhar, tenta carregar do banco local.
+    }
   }
+
+  final db = await LocalDb.db;
+
+  final rows = await db.query(
+    'livros',
+    orderBy: 'created_at DESC',
+    limit: 3,
+  );
+
+  return rows.map(Livro.fromMap).toList();
+}
 
   static Future<Livro?> obterLivroPorExemplar(String exemplarId) async {
     final resultado = await Supabase.instance.client
@@ -98,4 +120,131 @@ class LivroService {
     final first = resultado.firstOrNull;
     return first != null ? Livro.fromMap(first) : null;
   }
+
+
+
+
+  /// Busca um livro pelo ISBN.
+/// Se já existir no Supabase, reutiliza o registro.
+/// Caso contrário, consulta o Google Books e cadastra.
+static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
+  final codigo = isbn.replaceAll(RegExp(r'\D'), '');
+
+  if (codigo.length != 13 ||
+      (!codigo.startsWith('978') && !codigo.startsWith('979'))) {
+    throw Exception('Código ISBN-13 inválido.');
+  }
+
+  final supabase = Supabase.instance.client;
+
+  // 1. Verifica se o livro já existe no catálogo.
+  final existente = await supabase
+      .from('livros')
+      .select()
+      .eq('isbn', codigo)
+      .maybeSingle();
+
+  if (existente != null) {
+    return Livro.fromMap(
+      Map<String, dynamic>.from(existente),
+    );
+  }
+
+  // 2. Consulta o Google Books.
+  final uri = Uri.https(
+    'www.googleapis.com',
+    '/books/v1/volumes',
+    {
+      'q': 'isbn:$codigo',
+      'maxResults': '10',
+    },
+  );
+
+  final resposta = await http.get(uri).timeout(
+    const Duration(seconds: 20),
+  );
+
+  if (resposta.statusCode != 200) {
+    throw Exception('Não foi possível consultar os dados do livro.');
+  }
+
+  final dados = jsonDecode(resposta.body) as Map<String, dynamic>;
+  final itens = dados['items'] as List? ?? [];
+
+  Map<String, dynamic>? informacoes;
+
+  // 3. Confirma que o resultado realmente corresponde ao ISBN.
+  for (final item in itens) {
+    final volume = Map<String, dynamic>.from(item as Map);
+    final info = Map<String, dynamic>.from(
+      volume['volumeInfo'] as Map? ?? {},
+    );
+
+    final identificadores =
+        info['industryIdentifiers'] as List? ?? [];
+
+    final corresponde = identificadores.any((identificador) {
+      final mapa = Map<String, dynamic>.from(identificador as Map);
+      final valor = (mapa['identifier'] ?? '')
+          .toString()
+          .replaceAll(RegExp(r'\D'), '');
+
+      return valor == codigo;
+    });
+
+    if (corresponde) {
+      informacoes = info;
+      break;
+    }
+  }
+
+  if (informacoes == null) {
+    throw Exception(
+      'Não encontramos informações para esse ISBN. '
+      'Confira o código ou tente novamente.',
+    );
+  }
+
+  final titulo = (informacoes['title'] ?? '').toString().trim();
+
+  final autores = informacoes['authors'] as List? ?? [];
+  final autor = autores.isEmpty
+      ? 'Autor não informado'
+      : autores.join(', ');
+
+  if (titulo.isEmpty) {
+    throw Exception('Não encontramos o título desse livro.');
+  }
+
+  final imagens = informacoes['imageLinks'] as Map? ?? {};
+  final capa = imagens['thumbnail']?.toString().replaceFirst(
+    'http://',
+    'https://',
+  );
+
+  final descricao = informacoes['description']?.toString()
+      .replaceAll(RegExp(r'<[^>]*>'), '');
+
+  // 4. Cadastra o livro no catálogo.
+  final salvo = await supabase
+      .from('livros')
+      .insert({
+        'titulo': titulo,
+        'autor': autor,
+        'descricao': descricao,
+        'isbn': codigo,
+        'capa_url': capa,
+      })
+      .select()
+      .single();
+
+  // 5. Atualiza o cache local.
+  await _salvar([
+    Map<String, dynamic>.from(salvo),
+  ]);
+
+  return Livro.fromMap(
+    Map<String, dynamic>.from(salvo),
+  );
+}
 }

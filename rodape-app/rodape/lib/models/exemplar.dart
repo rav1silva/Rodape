@@ -28,15 +28,15 @@ class Exemplar {
   Livro? livro;
   Profile? desejadoPor;
 
-  factory Exemplar.fromMap(Map<String, dynamic> map) => Exemplar(
-    id: map["id"],
-    livroId: map["livro_id"],
-    donoId: map["dono_id"],
-    estadoDeConservacao: map["estado_conservacao"],
-    status: ExemplarStatusExtensions.fromString(map["status"]),
-    maos: map["maos"],
-    creditos: map["creditos"],
-    distancia: map["distancia"],
-    frete: map["frete"],
-  );
+factory Exemplar.fromMap(Map<String, dynamic> map) => Exemplar(
+  id: map["id"],
+  livroId: map["livro_id"],
+  donoId: map["dono_id"],
+  estadoDeConservacao: map["estado_conservacao"],
+  status: ExemplarStatusExtensions.fromString(map["status"]),
+  maos: map["maos"],
+  creditos: map["creditos"],
+  distancia: (map["distancia"] as num?)?.toDouble(),
+  frete: (map["frete"] as num?)?.toDouble(),
+);
 }

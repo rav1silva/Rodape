@@ -1,9 +1,11 @@
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:rodape/models/profile.dart';
 import 'package:rodape/services/auth_service.dart';
 import 'package:rodape/services/profile_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'helper_pref.dart';
 import 'models/cep_info.dart';
@@ -18,20 +20,11 @@ class ServiceAreaException implements Exception {
   final String message;
 }
 
-/// Simulador de autenticação e dos serviços externos do cadastro (busca de
-/// CEP, envio/validação de SMS).
-///
-/// Nenhuma chamada de rede acontece de verdade — cada método tem um
-/// `Future.delayed` para imitar latência real e mantém a mesma assinatura
-/// que uma implementação sobre [DioClient] teria, para a troca ser local
-/// quando a API existir.
 class AuthHelper {
   AuthHelper._();
 
-  static String? _ultimoCodigoEnviado;
+  static bool _googleInicializado = false;
 
-  /// CEPs "cadastrados" no mock, para variar a resposta de forma
-  /// previsível. Qualquer outro CEP com 8 dígitos cai no caso genérico.
   static const _ceps = <String, CepInfo>{
     '01221020': CepInfo(
       cep: '01221-020',
@@ -49,16 +42,105 @@ class AuthHelper {
     ),
   };
 
-  /// CEP usado para simular "fora de área" (nenhuma cobertura ainda).
   static const _cepForaDeArea = '00000000';
 
+  static SupabaseClient get _supabase =>
+      Supabase.instance.client;
+
+  // Inicializar uma única vez, depois de carregar o .env.
+  // Inicializar uma única vez, depois de carregar o .env.
+static Future<void> initializeGoogleSignIn() async {
+  // O Google Sign-In nativo não é inicializado no Linux.
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) {
+    return;
+  }
+
+  if (_googleInicializado) return;
+
+  final clientId = dotenv.env['GOOGLE_WEB_CLIENT_ID']?.trim();
+
+  if (clientId == null || clientId.isEmpty) {
+    throw Exception('GOOGLE_WEB_CLIENT_ID não configurado no .env.');
+  }
+
+  await GoogleSignIn.instance.initialize(
+    serverClientId: clientId,
+  );
+
+  _googleInicializado = true;
+}
+
+  // Login nativo com Google integrado ao Supabase.
+  static Future<AuthResponse> signInWithGoogle() async {
+    if (!_googleInicializado) {
+      await initializeGoogleSignIn();
+    }
+
+    final googleAccount =
+        await GoogleSignIn.instance.authenticate();
+
+    final googleAuthentication = googleAccount.authentication;
+    final idToken = googleAuthentication.idToken;
+
+    if (idToken == null) {
+      throw Exception('O Google não retornou um ID Token.');
+    }
+
+    final authorization = await googleAccount.authorizationClient
+            .authorizationForScopes(['email']) ??
+        await googleAccount.authorizationClient
+            .authorizeScopes(['email']);
+
+    final accessToken = authorization.accessToken;
+
+    if (accessToken.isEmpty) {
+      throw Exception('O Google não retornou um Access Token.');
+    }
+
+    return _supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+  }
+
+  // Cadastro com e-mail e senha.
+static Future<AuthResponse> signUpWithEmail({
+  required String email,
+  required String password,
+  required String telefone,
+}) async {
+  return _supabase.auth.signUp(
+    email: email.trim(),
+    password: password,
+    emailRedirectTo: 'com.example.rodape://login-callback/',
+    data: {
+      'telefone': telefone,
+    },
+  );
+}
+  // Login com e-mail e senha.
+  static Future<AuthResponse> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    return _supabase.auth.signInWithPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  // Busca de CEP (mantida como estava).
   static Future<CepInfo> lookupCep(String cep) async {
     final digits = cep.replaceAll(RegExp(r'\D'), '');
+
     await Future.delayed(const Duration(milliseconds: 900));
 
     if (digits.length != 8) {
       throw InvalidCepException('Digite um CEP válido (8 dígitos).');
     }
+
     if (digits == _cepForaDeArea) {
       throw ServiceAreaException('Ainda não chegamos nesse CEP.');
     }
@@ -73,53 +155,19 @@ class AuthHelper {
         );
   }
 
-  /// Envia (simula) um código de 6 dígitos por SMS e devolve o próprio
-  /// código gerado — útil para a UI mostrar um atalho de teste, já que não
-  /// há SMS real neste ambiente.
-  static Future<String> sendSmsCode(String telefone) async {
-    await Future.delayed(const Duration(milliseconds: 1100));
-    _ultimoCodigoEnviado = (100000 + Random().nextInt(900000)).toString();
-    debugPrint(
-      '[MOCK SMS] Código enviado para $telefone: $_ultimoCodigoEnviado',
-    );
-    return _ultimoCodigoEnviado!;
-  }
-
-  static Future<bool> verifyCode(String codigo) async {
-    await Future.delayed(const Duration(milliseconds: 700));
-    return codigo.length == 6 && codigo == _ultimoCodigoEnviado;
-  }
-
-  static Future<void> createAccount({
-    required String nome,
-    required String sobrenome,
-    required String telefone,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    debugPrint('[MOCK AUTH] Conta criada: $nome $sobrenome · $telefone');
-    await HelperPref.saveAuthToken(
-      'mock-token-${DateTime.now().millisecondsSinceEpoch}',
-    );
-    await HelperPref.setOnboardingDone(true);
-  }
-
-  static Future<void> loginExisting({required String telefone}) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    debugPrint('[MOCK AUTH] Login efetuado: $telefone');
-    await HelperPref.saveAuthToken(
-      'mock-token-${DateTime.now().millisecondsSinceEpoch}',
-    );
-    await HelperPref.setOnboardingDone(true);
-  }
-
-  /// Encerra a sessão: limpa o usuário em memória, o rascunho de cadastro,
-  /// o token e a flag de onboarding (próxima abertura volta para "/").
+  // Encerrar a sessão real do Supabase.
   static Future<void> logout() async {
-    debugPrint('[MOCK AUTH] Logout');
+    await _supabase.auth.signOut();
+
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (e) {
+      debugPrint('[AUTH] Não foi possível encerrar sessão Google: $e');
+    }
+
     AuthService.loggedUser = null;
     ProfileService.registerModel = Profile.blank();
-    _ultimoCodigoEnviado = null;
-    await HelperPref.clearAuthToken();
+
     await HelperPref.setOnboardingDone(false);
   }
 }

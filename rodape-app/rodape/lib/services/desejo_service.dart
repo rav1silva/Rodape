@@ -146,12 +146,39 @@ class DesejoService {
 
   // ---------- usados no cadastro (online, como antes) ----------
 
-  static Future<void> adicionarDesejos(List<Desejo> listaDesejo) async {
-    listaDesejo = _calcularPosicao(listaDesejo);
-    for (final desejo in listaDesejo) {
-      await Supabase.instance.client.from("desejos").insert(desejo.toMap());
+static Future<void> adicionarDesejos(List<Desejo> listaDesejo) async {
+  listaDesejo = _calcularPosicao(listaDesejo);
+
+  for (final desejo in listaDesejo) {
+    final dados = desejo.toMap();
+
+    debugPrint('========== CADASTRO DESEJO ==========');
+    debugPrint('ID: "${dados['id']}"');
+    debugPrint('USER ID: "${dados['user_id']}"');
+    debugPrint('LIVRO ID: "${dados['livro_id']}"');
+    debugPrint('POSIÇÃO: ${dados['posicao']}');
+    debugPrint('=====================================');
+
+    if (dados['id'] == null || dados['id'].toString().isEmpty) {
+      throw Exception('ID do desejo está vazio.');
     }
+
+    if (dados['user_id'] == null ||
+        dados['user_id'].toString().isEmpty) {
+      throw Exception('ID do usuário está vazio.');
+    }
+
+    if (dados['livro_id'] == null ||
+        dados['livro_id'].toString().isEmpty) {
+      throw Exception('ID do livro está vazio.');
+    }
+
+    await Supabase.instance.client
+        .from('desejos')
+        .insert(dados);
   }
+}
+
 
   static Future<void> removerDesejos(Profile user) async {
     if (user.id == null) return;

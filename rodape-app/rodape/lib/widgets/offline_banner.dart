@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rodape/services/auth_service.dart';
@@ -5,11 +6,7 @@ import 'package:rodape/services/net_service.dart';
 import 'package:rodape/theme/app_colors.dart';
 import 'package:rodape/theme/app_text_styles.dart';
 
-/// Aviso de "sem conexão". Para o usuário logado, avisa que as alterações
-/// ficam guardadas; antes do login, avisa que entrar/criar conta não é
-/// possível até a internet voltar.
-///
-/// Envolve o app inteiro (via `MaterialApp.builder`).
+/// Aviso compacto de falta de conexão.
 class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key, required this.child});
 
@@ -27,7 +24,9 @@ class OfflineBanner extends StatelessWidget {
         final detalhe = AuthService.loggedUser == null
             ? 'Não é possível entrar nem criar conta até ela voltar.'
             : 'Suas alterações serão enviadas quando ela voltar.';
+
         final topInset = MediaQuery.paddingOf(context).top;
+
         return Column(
           children: [
             AnnotatedRegion<SystemUiOverlayStyle>(
@@ -35,15 +34,20 @@ class OfflineBanner extends StatelessWidget {
               child: Material(
                 color: _color,
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, topInset + 10, 16, 12),
+                  padding: EdgeInsets.fromLTRB(
+                    12,
+                    topInset + 5,
+                    12,
+                    7,
+                  ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.wifi_off_rounded,
                         color: Colors.white,
-                        size: 22,
+                        size: 18,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,18 +56,18 @@ class OfflineBanner extends StatelessWidget {
                             Text(
                               'Sem conexão com a internet',
                               style: AppTextStyles.sans(
-                                fontSize: 15,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               detalhe,
                               style: AppTextStyles.sans(
-                                fontSize: 13,
+                                fontSize: 11,
                                 color: Colors.white.withValues(alpha: 0.9),
-                                height: 1.3,
+                                height: 1.2,
                               ),
                             ),
                           ],

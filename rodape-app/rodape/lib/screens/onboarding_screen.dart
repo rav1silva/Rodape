@@ -149,9 +149,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   RodapeButton(
-                    label: 'Começar',
-                    onPressed: () => Navigator.of(context).pushNamed('/cep'),
-                  ),
+  label: 'Criar conta',
+  onPressed: () => Navigator.of(context).pushNamed('/cep'),
+),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () => Navigator.of(context).pushNamed(

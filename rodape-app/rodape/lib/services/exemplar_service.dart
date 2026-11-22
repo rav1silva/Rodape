@@ -1,16 +1,36 @@
+
 import 'package:rodape/models/exemplar.dart';
 import 'package:rodape/models/livro.dart';
 import 'package:rodape/models/profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExemplarService {
-  static Future<List<Exemplar>> obterExemplaresLivro(Livro livro) async {
-    final resultado = await Supabase.instance.client
+  static Future<List<Exemplar>> obterExemplaresLivro(
+    Livro livro, {
+    String? donoId,
+  }) async {
+    var query = Supabase.instance.client
         .from("exemplares")
         .select()
         .eq("livro_id", livro.id);
 
+    if (donoId != null) {
+      query = query.eq("dono_id", donoId);
+    }
+
+    final resultado = await query;
     return resultado.map(Exemplar.fromMap).toList();
+  }
+
+  /// Cria um novo exemplar para um usuário.
+  static Future<void> cadastrarExemplar({
+    required String livroId,
+    required String donoId,
+  }) async {
+    await Supabase.instance.client.from('exemplares').insert({
+      'livro_id': livroId,
+      'dono_id': donoId,
+    });
   }
 
   static Future<Exemplar?> obterExemplarById(String id) async {
@@ -23,7 +43,9 @@ class ExemplarService {
     return first != null ? Exemplar.fromMap(first) : null;
   }
 
-  static Future<List<Exemplar>> obterExemplaresDesejados(Profile user) async {
+  static Future<List<Exemplar>> obterExemplaresDesejados(
+    Profile user,
+  ) async {
     if (user.id == null) {
       return [];
     }
@@ -32,6 +54,7 @@ class ExemplarService {
         .from("exemplares")
         .select()
         .eq("livros.desejos.user_id", user.id!);
+
     return resultado.map(Exemplar.fromMap).toList();
   }
 
@@ -41,6 +64,7 @@ class ExemplarService {
     if (user.id == null) {
       return [];
     }
+
     final resultado = await Supabase.instance.client
         .from("exemplares")
         .select()
@@ -52,7 +76,9 @@ class ExemplarService {
         .select()
         .or("solicitante_id.eq.${user.id},dono_id.eq.${user.id}");
 
-    final pedidosExemplaresId = pedidos.map((p) => p["exemplar_id"]).toList();
+    final pedidosExemplaresId =
+        pedidos.map((p) => p["exemplar_id"]).toList();
+
     return resultado
         .where((e) => !pedidosExemplaresId.contains(e["id"]))
         .map(Exemplar.fromMap)

@@ -1,34 +1,40 @@
+
 import 'package:flutter/material.dart';
 import 'package:rodape/models/onboarding_args.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/rodape_button.dart';
+import 'isbn_scanner_screen.dart';
 
-/// C8 · Seus primeiros livros — tela de conclusão do cadastro.
-///
-/// Restrição do escopo atual: nenhuma câmera/scanner real é aberta aqui.
-/// "Escanear livro" apenas simula a ação (print + snackbar mock) e
-/// permanece na tela; "Depois" é quem de fato navega para a Home.
 class OnboardingCompleteScreen extends StatelessWidget {
   const OnboardingCompleteScreen({super.key, required this.args});
 
   final OnboardingCompleteArgs args;
 
-  void _escanearLivroMock(BuildContext context) {
-    debugPrint(
-      '[MOCK SCANNER] Escanear livro acionado — câmera/leitor de '
-      'código de barras ainda não implementados.',
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Escaneamento de código de barras — em breve (mock).'),
+  Future<void> _escanearLivro(BuildContext context) async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const IsbnScannerScreen(),
       ),
     );
+
+    if (!context.mounted) return;
+
+    if (resultado == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Livro adicionado! Você pode escanear outro.'),
+        ),
+      );
+    }
   }
 
   void _irParaHome(BuildContext context) {
-    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/home',
+      (route) => false,
+    );
   }
 
   @override
@@ -148,7 +154,7 @@ class OnboardingCompleteScreen extends StatelessWidget {
                   RodapeButton(
                     label: 'Escanear livro',
                     icon: Icons.qr_code_scanner,
-                    onPressed: () => _escanearLivroMock(context),
+                    onPressed: () => _escanearLivro(context),
                   ),
                   const SizedBox(height: 12),
                   TextButton(

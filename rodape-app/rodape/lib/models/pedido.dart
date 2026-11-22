@@ -1,6 +1,11 @@
+
 import 'package:rodape/models/exemplar.dart';
-import 'package:rodape/models/exemplar_status.dart';
 import 'package:rodape/models/livro.dart';
+import 'package:rodape/models/profile.dart';
+import 'package:rodape/models/pedido_status.dart';
+
+// Quem importa pedido.dart também recebe o PedidoStatus e o label/color dele.
+export 'package:rodape/models/pedido_status.dart';
 
 class Pedido {
   Pedido({
@@ -11,7 +16,10 @@ class Pedido {
     this.rodaId,
     this.nota,
     this.frete,
+    this.previsaoEntrega,
+    this.createdAt,
     required this.destinatarioId,
+    this.solicitante,
   });
 
   final String id;
@@ -20,9 +28,12 @@ class Pedido {
   final String? rodaId;
   final double? frete;
   final String? nota;
-  final ExemplarStatus status;
+  final PedidoStatus status;
+  final DateTime? previsaoEntrega;
+  final DateTime? createdAt;
   final String destinatarioId;
 
+  Profile? solicitante;
   Livro? livro;
   Exemplar? exemplar;
 
@@ -31,20 +42,11 @@ class Pedido {
     exemplarId: map["exemplar_id"],
     solicitanteId: map["solicitante_id"],
     rodaId: map["roda_id"],
-    status: ExemplarStatusExtensions.fromString(map["status"]),
-    frete: map["frete"],
+    status: PedidoStatusX.fromString(map["status"]),
+    frete: (map["frete"] as num?)?.toDouble(),
     nota: map["nota"],
+    previsaoEntrega: DateTime.tryParse(map["previsao_entrega"] ?? ""),
+    createdAt: DateTime.tryParse(map["created_at"] ?? ""),
     destinatarioId: map["destinatario_id"],
   );
 }
-
-// create table pedidos (           -- pedido de um exemplar (uma etapa da roda)
-//   id uuid primary key default gen_random_uuid(),
-//   exemplar_id uuid not null references exemplares(id) on delete cascade,
-//   solicitante_id uuid not null references profiles(id),
-//   roda_id uuid references rodas(id),
-//   frete numeric(6,2),
-//   nota text,
-//   status text not null default 'pendente'
-//     check (status in ('pendente','aceito','a_caminho','entregue','cancelado')),
-//   created_at timestamptz default now()
