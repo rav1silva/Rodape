@@ -26,7 +26,8 @@ class _IsbnScannerScreenState extends State<IsbnScannerScreen> {
 
     for (final barcode in captura.barcodes) {
       final valor = barcode.rawValue;
-
+	debugPrint('[SCANNER] Formato: ${barcode.format}');
+	debugPrint('[SCANNER] Valor: $valor');
       if (valor == null) continue;
 
       final normalizado = valor.replaceAll(RegExp(r'\D'), '');
