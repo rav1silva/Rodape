@@ -44,13 +44,18 @@ class AppRoutes {
   static const onboardingComplete = '/onboarding-complete';
   static const home = '/home';
 }
-Future<bool> restaurarSessao() async {
+/// Decide a rota inicial a partir da sessão do Supabase:
+/// - sessão + perfil → Home;
+/// - sessão confirmada sem perfil (ex.: app foi fechado enquanto a pessoa
+///   confirmava o e-mail e reabriu pelo link) → retoma no passo do nome;
+/// - sem sessão → abertura.
+Future<String> rotaInicialPelaSessao() async {
   final supabase = Supabase.instance.client;
   final authUser = supabase.auth.currentUser;
 
   if (authUser == null) {
     AuthService.loggedUser = null;
-    return false;
+    return AppRoutes.onboarding;
   }
 
   try {
@@ -58,21 +63,33 @@ Future<bool> restaurarSessao() async {
       authUser.id,
     );
 
-    if (perfil == null) {
-      AuthService.loggedUser = null;
-      return false;
+    if (perfil != null) {
+      AuthService.loggedUser = perfil;
+      ProfileService.registerModel = perfil;
+      return AppRoutes.home;
     }
 
-    AuthService.loggedUser = perfil;
-    ProfileService.registerModel = perfil;
+    AuthService.loggedUser = null;
 
-    return true;
+    final telefone = authUser.userMetadata?['telefone']?.toString() ?? '';
+    final emailConfirmado = authUser.emailConfirmedAt != null;
+
+    if (emailConfirmado && telefone.trim().isNotEmpty) {
+      ProfileService.registerModel
+        ..authUserId = authUser.id
+        ..telefone = telefone
+        ..cep = await HelperPref.getCep() ?? '';
+      return AppRoutes.name;
+    }
+
+    return AppRoutes.onboarding;
   } catch (e) {
     debugPrint('Erro ao restaurar sessão: $e');
     AuthService.loggedUser = null;
-    return false;
+    return AppRoutes.onboarding;
   }
 }
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -99,15 +116,7 @@ Future<void> main() async {
   final locais = await (await LocalDb.db).query('livros');
   debugPrint('livros no aparelho: ${locais.length}');
 
-  // Verifica se o onboarding já foi concluído.
-  final onboardingConcluido = await HelperPref.isOnboardingDone();
-final sessaoRestaurada = await restaurarSessao();
-
-final rotaInicial = sessaoRestaurada
-    ? AppRoutes.home
-    : onboardingConcluido
-        ? AppRoutes.onboarding
-        : AppRoutes.onboarding;
+  final rotaInicial = await rotaInicialPelaSessao();
 
   runApp(
   RodapeApp(
@@ -164,7 +173,8 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
       return _buildRoute(
         settings,
         NameStepScreen(
-          telefone: settings.arguments as String,
+          telefone: settings.arguments as String? ??
+              ProfileService.registerModel.telefone,
         ),
       );
 

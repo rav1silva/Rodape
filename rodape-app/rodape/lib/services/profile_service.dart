@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 
 import 'package:rodape/models/profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -61,6 +62,37 @@ class ProfileService {
 
       rethrow;
     }
+  }
+
+  /// true se nenhum perfil usa esse telefone (comparando só os dígitos).
+  /// Funciona sem sessão: usa a RPC `telefone_disponivel`
+  /// (supabase/migrations/20261122000000_telefone_disponivel.sql).
+  static Future<bool> telefoneDisponivel(String telefone) async {
+    try {
+      final resultado = await _db.rpc(
+        'telefone_disponivel',
+        params: {'p_telefone': telefone},
+      );
+      return resultado == true;
+    } on PostgrestException catch (e) {
+      // RPC ainda não criada no projeto: não trava o cadastro, e o índice
+      // único em profiles continua barrando no fim.
+      if (e.code == 'PGRST202') {
+        debugPrint(
+          '[CADASTRO] RPC telefone_disponivel não existe no Supabase. '
+          'Rode a migration 20261122000000_telefone_disponivel.sql.',
+        );
+        return true;
+      }
+      rethrow;
+    }
+  }
+
+  /// true quando o erro veio da restrição única de telefone em profiles.
+  static bool isTelefoneDuplicado(Object erro) {
+    if (erro is! PostgrestException || erro.code != '23505') return false;
+    final texto = '${erro.message} ${erro.details ?? ''}'.toLowerCase();
+    return texto.contains('telefone');
   }
 
   static Future<Profile?> obterUsuario(String telefone) async {

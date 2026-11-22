@@ -169,12 +169,15 @@ if (livrosSelecionados.isNotEmpty) {
 
       setState(() => _salvando = false);
 
+      // outro cadastro usou o mesmo telefone entre a
+      // checagem da tela anterior e este insert.
+      final mensagem = ProfileService.isTelefoneDuplicado(e)
+          ? 'Este telefone já está cadastrado em outra conta. Volte e '
+              'informe outro número.'
+          : 'Não foi possível concluir o cadastro. Tente novamente.';
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Não foi possível concluir o cadastro: $e',
-          ),
-        ),
+        SnackBar(content: Text(mensagem)),
       );
     }
   }

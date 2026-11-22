@@ -105,21 +105,60 @@ static Future<void> initializeGoogleSignIn() async {
     );
   }
 
+  /// Deep link para onde o link de confirmação do e-mail redireciona.
+  /// Precisa estar em Authentication → URL Configuration → Redirect URLs
+  /// no painel do Supabase, senão o Supabase cai no "Site URL".
+  static const emailRedirectTo = 'com.example.rodape://login-callback/';
+
   // Cadastro com e-mail e senha.
-static Future<AuthResponse> signUpWithEmail({
-  required String email,
-  required String password,
-  required String telefone,
-}) async {
-  return _supabase.auth.signUp(
-    email: email.trim(),
-    password: password,
-    emailRedirectTo: 'com.example.rodape://login-callback/',
-    data: {
-      'telefone': telefone,
-    },
-  );
-}
+  static Future<AuthResponse> signUpWithEmail({
+    required String email,
+    required String password,
+    required String telefone,
+  }) async {
+    return _supabase.auth.signUp(
+      email: email.trim(),
+      password: password,
+      emailRedirectTo: emailRedirectTo,
+      data: {
+        'telefone': telefone,
+      },
+    );
+  }
+
+  // Reenvia o e-mail de confirmação de cadastro.
+  static Future<void> resendSignupEmail(String email) async {
+    await _supabase.auth.resend(
+      type: OtpType.signup,
+      email: email.trim(),
+      emailRedirectTo: emailRedirectTo,
+    );
+  }
+
+  /// true quando o Supabase recusou o login porque o e-mail ainda não
+  /// foi confirmado.
+  static bool isEmailNotConfirmed(Object erro) {
+    if (erro is! AuthException) return false;
+    return erro.code == 'email_not_confirmed' ||
+        erro.message.toLowerCase().contains('not confirmed');
+  }
+
+  /// true quando e-mail/senha não conferem.
+  static bool isInvalidCredentials(Object erro) {
+    if (erro is! AuthException) return false;
+    return erro.code == 'invalid_credentials' ||
+        erro.message.toLowerCase().contains('invalid login');
+  }
+
+  /// No cadastro, o Supabase devolve um usuário "fantasma" (sem
+  /// identities e sem sessão) quando o e-mail já tem conta confirmada.
+  static bool isExistingAccount(AuthResponse resposta) {
+    final identities = resposta.user?.identities;
+    return resposta.session == null &&
+        identities != null &&
+        identities.isEmpty;
+  }
+
   // Login com e-mail e senha.
   static Future<AuthResponse> signInWithEmail({
     required String email,

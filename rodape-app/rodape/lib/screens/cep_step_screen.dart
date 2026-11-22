@@ -90,6 +90,9 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
   void _nextStep() {
     ProfileService.registerModel.cep = _resultado?.cep ?? "";
+    // Guarda o CEP para retomar o cadastro se o app for fechado enquanto
+    // a pessoa confirma o e-mail.
+    HelperPref.saveCep(ProfileService.registerModel.cep);
     if (mounted) {
       Navigator.of(context).pushNamed('/nearby-books', arguments: _resultado);
     }
