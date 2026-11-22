@@ -51,24 +51,40 @@ Future<List<Livro>> _obterLivros() async {
   }
 
   Future<void> _adicionar(Livro book) async {
-    // Sem internet o livro entra na lista mesmo assim (veio do catálogo
-    // local); só fica sem os dados de exemplares próximos.
-    try {
-      book.exemplares = await ExemplarService.obterExemplaresLivro(book);
-    } catch (e) {
-      debugPrint('[EXEMPLARES] Falha de rede: $e');
-    }
-    if (!mounted) return;
-    setState(() {
-      _lista.add(book);
-      _searchController.clear();
-    });
+  // Impede adicionar o mesmo livro mais de uma vez.
+  final jaAdicionado = _lista.any((livro) => livro.id == book.id);
 
-    if (!mounted) {
-      return;
-    }
-    FocusScope.of(context).unfocus();
+  if (jaAdicionado) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Este livro já está na sua lista.'),
+      ),
+    );
+    return;
   }
+
+  // Sem internet, o livro entra na lista mesmo assim.
+  try {
+    book.exemplares = await ExemplarService.obterExemplaresLivro(book);
+  } catch (e) {
+    debugPrint('[EXEMPLARES] Falha de rede: $e');
+  }
+
+  if (!mounted) return;
+
+  // Verifica novamente após a operação assíncrona.
+  final aindaNaoAdicionado =
+      !_lista.any((livro) => livro.id == book.id);
+
+  if (!aindaNaoAdicionado) return;
+
+  setState(() {
+    _lista.add(book);
+    _searchController.clear();
+  });
+
+  FocusScope.of(context).unfocus();
+}
 
   void _abrirDetalhes(Livro book) {
     Navigator.of(context)
@@ -151,9 +167,9 @@ FutureBuilder<List<Livro>>(
     }
 
     final livrosDisponiveis = data
-        .where((b) => !_lista.contains(b))
-        .toList();
-
+    .where((b) => !_lista.any((selecionado) => selecionado.id == b.id))
+    .toList();
+    
     if (livrosDisponiveis.isEmpty) {
       return const SizedBox.shrink();
     }
