@@ -1,10 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:rodape/data/local_db.dart';
 import 'package:rodape/models/livro.dart';
 import 'package:rodape/services/net_service.dart';
+import 'package:rodape/theme/app_colors.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LivroService {
   static Map<String, Object?> _linha(Map<String, dynamic> m) => {
@@ -145,9 +147,7 @@ static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
       .maybeSingle();
 
   if (existente != null) {
-    return Livro.fromMap(
-      Map<String, dynamic>.from(existente),
-    );
+    return _completarCapa(Map<String, dynamic>.from(existente));
   }
 
   // 2. Consulta o Google Books pela Edge Function.
@@ -216,15 +216,16 @@ static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
   }
 
   final imagens = informacoes['imageLinks'] as Map? ?? {};
-  final capa = imagens['thumbnail']?.toString().replaceFirst(
-    'http://',
-    'https://',
+  final capa = await _procurarCapa(
+    codigo,
+    imagens['thumbnail']?.toString().replaceFirst('http://', 'https://'),
   );
 
   final descricao = informacoes['description']?.toString()
       .replaceAll(RegExp(r'<[^>]*>'), '');
 
-  // 4. Cadastra o livro no catálogo.
+  // 4. Cadastra o livro no catálogo. Sem capa, grava uma cor de lombada
+  // para ele aparecer como lombada colorida e não como caixa branca.
   final salvo = await supabase
       .from('livros')
       .insert({
@@ -233,6 +234,7 @@ static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
         'descricao': descricao,
         'isbn': codigo,
         'capa_url': capa,
+        if (capa == null) 'cor_lombada': _corLombadaPadrao(codigo),
       })
       .select()
       .single();
@@ -246,4 +248,112 @@ static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
     Map<String, dynamic>.from(salvo),
   );
 }
+
+  /// Procura a capa nesta ordem e usa a primeira que existir:
+  /// 1. imageLinks da busca do Google Books;
+  /// 2. books.google.com/books/content (descartando a imagem cinza
+  ///    "image not available");
+  /// 3. Leitura (simpleset.leitura.com.br);
+  /// 4. Open Library.
+  /// Retorna null se nenhuma existir.
+  static Future<String?> _procurarCapa(String isbn, String? daBusca) async {
+    if (daBusca != null && daBusca.isNotEmpty) return daBusca;
+
+    final google = _urlGoogleContent(isbn);
+    // Sem capa, o Google responde 200 com uma imagem cinza: ou o PNG
+    // "image not available" (1269 bytes) ou um JPEG de livro genérico
+    // (10794 bytes). Capas de verdade vêm como JPEG de outros tamanhos.
+    if (await _imagemExiste(
+      google,
+      aceitar: (tipo, tamanho) =>
+          tipo.contains('jpeg') &&
+          tamanho != null &&
+          tamanho > 2000 &&
+          !_tamanhosPlaceholderGoogle.contains(tamanho),
+    )) {
+      return google;
+    }
+
+    final leitura = 'https://simpleset.leitura.com.br/capas/$isbn.jpg';
+    if (await _imagemExiste(leitura)) return leitura;
+
+    final openLibrary =
+        'https://covers.openlibrary.org/b/isbn/$isbn-L.jpg?default=false';
+    if (await _imagemExiste(openLibrary)) return openLibrary;
+
+    return null;
+  }
+
+  static const _tamanhosPlaceholderGoogle = {1269, 10794};
+
+  static String _urlGoogleContent(String isbn) =>
+      'https://books.google.com/books/content'
+      '?vid=ISBN$isbn&printsec=frontcover&img=1&zoom=1';
+
+  /// Livro já cadastrado: se está sem capa (ou com a capa do endpoint
+  /// books/content do Google, que pode ser a imagem cinza), refaz a busca
+  /// e atualiza o registro. Se não der para atualizar, devolve como está.
+  static Future<Livro> _completarCapa(Map<String, dynamic> livro) async {
+    final isbn = livro['isbn']?.toString();
+    final atual = livro['capa_url']?.toString();
+    final suspeita = atual == null ||
+        atual.isEmpty ||
+        atual.startsWith('https://books.google.com/books/content');
+
+    if (isbn == null || !suspeita) return Livro.fromMap(livro);
+
+    final capa = await _procurarCapa(isbn, null);
+    final mudancas = <String, dynamic>{
+      if (capa != atual) 'capa_url': capa,
+      if (capa == null && livro['cor_lombada'] == null)
+        'cor_lombada': _corLombadaPadrao(isbn),
+    };
+    if (mudancas.isEmpty) return Livro.fromMap(livro);
+
+    try {
+      final salvo = await Supabase.instance.client
+          .from('livros')
+          .update(mudancas)
+          .eq('id', livro['id'])
+          .select()
+          .single();
+      final mapa = Map<String, dynamic>.from(salvo);
+      await _salvar([mapa]);
+      return Livro.fromMap(mapa);
+    } catch (e) {
+      debugPrint('[CAPA] Não foi possível atualizar a capa de $isbn: $e');
+      return Livro.fromMap(livro);
+    }
+  }
+
+  /// HEAD na URL (sem baixar a imagem): existe se responder 200 com um
+  /// content-type de imagem e passar no critério extra [aceitar].
+  static Future<bool> _imagemExiste(
+    String url, {
+    bool Function(String tipo, int? tamanho)? aceitar,
+  }) async {
+    try {
+      final r = await http
+          .head(Uri.parse(url))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return false;
+      final tipo = (r.headers['content-type'] ?? '').toLowerCase();
+      if (!tipo.startsWith('image/')) return false;
+      final tamanho = int.tryParse(r.headers['content-length'] ?? '');
+      return aceitar?.call(tipo, tamanho) ?? true;
+    } catch (_) {
+      // Rede, timeout ou CORS (no web): trata como "não existe".
+      return false;
+    }
+  }
+
+  /// Cor de lombada para livro sem capa: uma das cores de lombada do tema,
+  /// escolhida pelo ISBN (o mesmo livro sempre recebe a mesma cor).
+  /// Formato "0xAARRGGBB", que é o que `int.parse` lê na UI.
+  static String _corLombadaPadrao(String isbn) {
+    final cores = AppColors.spines;
+    final indice = int.parse(isbn.substring(isbn.length - 4)) % cores.length;
+    final argb = cores[indice].toARGB32();
+    return '0x${argb.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+  }
 }
