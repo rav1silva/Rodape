@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:rodape/models/exemplar_status.dart';
 import 'package:rodape/models/livro.dart';
+import 'package:rodape/models/exemplar.dart';
 import 'package:rodape/services/exemplar_service.dart';
 import 'package:rodape/services/livro_service.dart';
 import 'package:rodape/services/pedido_service.dart';
@@ -19,6 +20,7 @@ import '../widgets/status_badge.dart';
 
 import 'isbn_scanner_screen.dart';
 import 'pedidos_recebidos_screen.dart';
+import 'exemplar_details_screen.dart';
 
 class ShelfScreen extends StatefulWidget {
   const ShelfScreen({super.key});
@@ -58,27 +60,27 @@ class _ShelfScreenState extends State<ShelfScreen> {
     }
   }
 
- Future<List<Livro>> _obterLivrosDisponiveis() async {
-  final usuario = AuthService.loggedUser;
+  Future<List<Livro>> _obterLivrosDisponiveis() async {
+    final usuario = AuthService.loggedUser;
 
-  if (usuario == null || usuario.id == null) {
-    return [];
+    if (usuario == null || usuario.id == null) {
+      return [];
+    }
+
+    final livros = await LivroService.obterLivros();
+
+    for (final livro in livros) {
+      final exemplares = await ExemplarService.obterExemplaresLivro(
+        livro,
+        donoId: usuario.id!,
+      );
+
+      livro.exemplares = exemplares;
+      livro.pedidos = await PedidoService.pedidosLivro(livro);
+    }
+
+    return livros.where((livro) => livro.exemplaresCount > 0).toList();
   }
-
-  final livros = await LivroService.obterLivros();
-
-  for (final livro in livros) {
-   final exemplares = await ExemplarService.obterExemplaresLivro(
-  livro,
-  donoId: usuario.id!,
-);
-
-    livro.exemplares = exemplares;
-    livro.pedidos = await PedidoService.pedidosLivro(livro);
-  }
-
-  return livros.where((l) => l.exemplaresCount > 0).toList();
-}
 
   @override
   void initState() {
@@ -114,6 +116,26 @@ class _ShelfScreenState extends State<ShelfScreen> {
         builder: (_) => const PedidosRecebidosScreen(),
       ),
     );
+  }
+
+  Future<void> _abrirDetalhes(
+    Livro livro,
+    Exemplar exemplar,
+  ) async {
+    final atualizado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ExemplarDetailsScreen(
+          book: livro,
+          exemplar: exemplar,
+        ),
+      ),
+    );
+
+    if (atualizado == true && mounted) {
+      setState(() {
+        _fetchFuture = _obterLivrosDisponiveis();
+      });
+    }
   }
 
   @override
@@ -152,24 +174,32 @@ class _ShelfScreenState extends State<ShelfScreen> {
                     return const _EmptyShelf();
                   }
 
-                  final exemplares = data.fold(
+                  // Transforma os livros em uma lista de exemplares individuais.
+                  final itens = data.expand((livro) {
+                    return (livro.exemplares ?? []).map(
+                      (exemplar) => _ShelfItem(
+                        book: livro,
+                        exemplar: exemplar,
+                      ),
+                    );
+                  }).toList();
+
+                  final exemplares = itens.length;
+
+                  final pedidos = data.fold<int>(
                     0,
-                    (prev, item) => prev + item.exemplaresCount,
+                    (total, livro) =>
+                        total + (livro.pedidos?.length ?? 0),
                   );
 
-                  final pedidos = data.fold(
-                    0,
-                    (prev, item) => prev + (item.pedidos?.length ?? 0),
-                  );
-
-                  final livrosFiltrados = _filtro == null
-                      ? data
-                      : data.where((livro) {
-                          return livro.exemplares?.any(
-                                (e) => e.status == _filtro,
-                              ) ??
-                              false;
-                        }).toList();
+                  // O filtro agora é aplicado individualmente a cada exemplar.
+                  final itensFiltrados = _filtro == null
+                      ? itens
+                      : itens
+                          .where(
+                            (item) => item.exemplar.status == _filtro,
+                          )
+                          .toList();
 
                   return Column(
                     children: [
@@ -191,7 +221,7 @@ class _ShelfScreenState extends State<ShelfScreen> {
                             children: [
                               FilterChipPill(
                                 label: 'Todos',
-                                count: data.length,
+                                count: exemplares,
                                 active: _filtro == null,
                                 onTap: () {
                                   setState(() => _filtro = null);
@@ -201,12 +231,12 @@ class _ShelfScreenState extends State<ShelfScreen> {
                               for (final status in ExemplarStatus.values) ...[
                                 FilterChipPill(
                                   label: status.label,
-                                  count: data.where(
-                                    (b) => b.exemplares?.any(
-                                          (e) => e.status == status,
-                                        ) ??
-                                        false,
-                                  ).length,
+                                  count: itens
+                                      .where(
+                                        (item) =>
+                                            item.exemplar.status == status,
+                                      )
+                                      .length,
                                   active: _filtro == status,
                                   onTap: () {
                                     setState(() => _filtro = status);
@@ -267,27 +297,46 @@ class _ShelfScreenState extends State<ShelfScreen> {
                           ),
                         ),
                       Expanded(
-                        child: GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(
-                            16,
-                            0,
-                            16,
-                            12,
-                          ),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 20,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 171 / 225,
-                          ),
-                          itemCount: livrosFiltrados.length,
-                          itemBuilder: (context, index) {
-                            return _ShelfTile(
-                              book: livrosFiltrados[index],
-                            );
-                          },
-                        ),
+                        child: itensFiltrados.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'Nenhum exemplar com esse status.',
+                                  style: AppTextStyles.sans(
+                                    fontSize: 14,
+                                    color: AppColors.ink700,
+                                  ),
+                                ),
+                              )
+                            : GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  12,
+                                ),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 190,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  childAspectRatio: 171 / 245,
+                                ),
+                                itemCount: itensFiltrados.length,
+                                itemBuilder: (context, index) {
+                                  final item = itensFiltrados[index];
+
+                                  return _ShelfTile(
+                                    book: item.book,
+                                    exemplar: item.exemplar,
+                                    onTap: () {
+                                      _abrirDetalhes(
+                                        item.book,
+                                        item.exemplar,
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                       ),
                     ],
                   );
@@ -304,38 +353,70 @@ class _ShelfScreenState extends State<ShelfScreen> {
   }
 }
 
-class _ShelfTile extends StatelessWidget {
-  const _ShelfTile({required this.book});
+// Representa um livro junto de uma cópia específica.
+class _ShelfItem {
+  const _ShelfItem({
+    required this.book,
+    required this.exemplar,
+  });
 
   final Livro book;
+  final Exemplar exemplar;
+}
+
+class _ShelfTile extends StatelessWidget {
+  const _ShelfTile({
+    required this.book,
+    required this.exemplar,
+    required this.onTap,
+  });
+
+  final Livro book;
+  final Exemplar exemplar;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final exemplar = book.exemplares?.firstOrNull;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: BookCover(
-            book: book,
-            width: 171,
-            height: 180,
-          ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: BookCover(
+                book: book,
+                width: 171,
+                height: 180,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              book.titulo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.sans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 5),
+            StatusBadge(status: exemplar.status),
+            const SizedBox(height: 4),
+            Text(
+              'Conservação: ${exemplar.estadoDeConservacao}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.sans(
+                fontSize: 11,
+                color: AppColors.ink700,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        Text(
-          book.titulo,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.sans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 5),
-        if (exemplar != null) StatusBadge(status: exemplar.status),
-      ],
+      ),
     );
   }
 }
@@ -386,3 +467,4 @@ class _EmptyShelf extends StatelessWidget {
     );
   }
 }
+

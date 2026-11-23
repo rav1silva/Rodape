@@ -4,7 +4,6 @@ import 'package:rodape/models/livro.dart';
 import 'package:rodape/models/profile.dart';
 import 'package:rodape/models/pedido_status.dart';
 
-// Quem importa pedido.dart também recebe o PedidoStatus e o label/color dele.
 export 'package:rodape/models/pedido_status.dart';
 
 class Pedido {
@@ -20,6 +19,7 @@ class Pedido {
     this.createdAt,
     required this.destinatarioId,
     this.solicitante,
+    this.creditosReservados,
   });
 
   final String id;
@@ -32,21 +32,25 @@ class Pedido {
   final DateTime? previsaoEntrega;
   final DateTime? createdAt;
   final String destinatarioId;
+  final int? creditosReservados;
 
   Profile? solicitante;
   Livro? livro;
   Exemplar? exemplar;
 
   factory Pedido.fromMap(Map<String, dynamic> map) => Pedido(
-    id: map["id"],
-    exemplarId: map["exemplar_id"],
-    solicitanteId: map["solicitante_id"],
-    rodaId: map["roda_id"],
-    status: PedidoStatusX.fromString(map["status"]),
-    frete: (map["frete"] as num?)?.toDouble(),
-    nota: map["nota"],
-    previsaoEntrega: DateTime.tryParse(map["previsao_entrega"] ?? ""),
-    createdAt: DateTime.tryParse(map["created_at"] ?? ""),
-    destinatarioId: map["destinatario_id"],
-  );
+        id: map["id"],
+        exemplarId: map["exemplar_id"],
+        solicitanteId: map["solicitante_id"],
+        rodaId: map["roda_id"],
+        status: PedidoStatusX.fromString(map["status"]),
+        frete: (map["frete"] as num?)?.toDouble(),
+        nota: map["nota"],
+        previsaoEntrega:
+            DateTime.tryParse(map["previsao_entrega"] ?? ""),
+        createdAt: DateTime.tryParse(map["created_at"] ?? ""),
+        destinatarioId: map["destinatario_id"],
+        creditosReservados:
+            (map["creditos_reservados"] as num?)?.toInt(),
+      );
 }

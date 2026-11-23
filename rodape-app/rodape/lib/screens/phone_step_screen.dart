@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -596,38 +597,6 @@ class _PhoneStepScreenState extends State<PhoneStepScreen>
     }
   }
 
-  Future<void> _continuarComGoogle() async {
-    if (!_isLogin && !_numeroValido) {
-      _mensagem('Informe seu telefone para concluir o cadastro.');
-      return;
-    }
-
-    setState(() => _enviando = true);
-
-    if (!_isLogin && !await _telefoneLiberado()) return;
-
-    try {
-      final resposta = await AuthHelper.signInWithGoogle();
-      final usuario = resposta.user;
-
-      if (usuario == null) {
-        throw Exception('O Google não retornou um usuário.');
-      }
-
-      await _verificarPerfil(
-        usuario.id,
-        telefoneSalvo: usuario.userMetadata?['telefone']?.toString(),
-      );
-    } catch (e) {
-      debugPrint('[AUTH] Erro no Google: $e');
-
-      if (!mounted) return;
-
-      setState(() => _enviando = false);
-      _mensagem('Não foi possível entrar com Google. Tente novamente.');
-    }
-  }
-
   // ---------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------
@@ -902,7 +871,7 @@ class _PhoneStepScreenState extends State<PhoneStepScreen>
           _aguardandoTelefone
               ? 'Sua autenticação foi concluída. Informe seu telefone para criar seu perfil no Rodapé.'
               : isLogin
-                  ? 'Entre com seu e-mail e senha ou utilize sua conta Google.'
+                  ? 'Entre com seu e-mail e senha.'
                   : 'Crie sua conta para começar a trocar livros com outras pessoas.',
           style: AppTextStyles.sans(
             fontSize: 15,
@@ -999,30 +968,6 @@ class _PhoneStepScreenState extends State<PhoneStepScreen>
                   _mostrarSenha ? Icons.visibility_off : Icons.visibility,
                 ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-          Text(
-            'OU',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.mono(
-              fontSize: 11,
-              color: AppColors.textMuted,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          ListenableBuilder(
-            listenable: Net.i,
-            builder: (context, _) => RodapeButton(
-              label: 'Continuar com Google',
-              variant: RodapeButtonVariant.quiet,
-              size: RodapeButtonSize.sm,
-              onPressed: (_enviando || !Net.i.online || _aguardandoTelefone)
-                  ? null
-                  : _continuarComGoogle,
             ),
           ),
         ],

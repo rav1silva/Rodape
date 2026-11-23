@@ -153,7 +153,7 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
       return _buildRoute(
         settings,
         NearbyBooksStepScreen(
-          cepInfo: settings.arguments as Address,
+          cepInfo: settings.arguments as Address?,
         ),
       );
 

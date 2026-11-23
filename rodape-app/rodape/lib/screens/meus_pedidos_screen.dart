@@ -335,7 +335,7 @@ class _MeusPedidosScreenState extends State<MeusPedidosScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${pedido.exemplar?.creditos ?? 0} créditos',
+                      '${pedido.creditosReservados ?? pedido.exemplar?.creditos ?? 0} créditos',
                       style: const TextStyle(
                         color: Colors.black54,
                         fontSize: 13,

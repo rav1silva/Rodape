@@ -3,8 +3,8 @@ import 'package:rodape/models/livro.dart';
 import 'package:rodape/services/net_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+
 
 class LivroService {
   static Map<String, Object?> _linha(Map<String, dynamic> m) => {

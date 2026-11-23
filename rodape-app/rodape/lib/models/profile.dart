@@ -22,6 +22,9 @@ class Profile {
     this.pontoEncontro,
     this.aceitaUber = false,
     this.aceitaTransportadora = false,
+    this.latitude,
+    this.longitude,
+    this.localizacaoOrigem,
   });
 
   String? id;
@@ -50,6 +53,11 @@ class Profile {
   bool aceitaUber = false;
   bool aceitaTransportadora = false;
 
+  // Localização do usuário
+  double? latitude;
+  double? longitude;
+  String? localizacaoOrigem;
+
   Map<String, dynamic> toMap() {
     return {
       "auth_user_id": authUserId,
@@ -67,6 +75,9 @@ class Profile {
       "ponto_encontro": pontoEncontro,
       "aceita_uber": aceitaUber,
       "aceita_transportadora": aceitaTransportadora,
+      "latitude": latitude,
+      "longitude": longitude,
+      "localizacao_origem": localizacaoOrigem,
     };
   }
 
@@ -92,5 +103,8 @@ class Profile {
     aceitaUber: map["aceita_uber"] as bool? ?? false,
     aceitaTransportadora:
         map["aceita_transportadora"] as bool? ?? false,
+    latitude: (map["latitude"] as num?)?.toDouble(),
+    longitude: (map["longitude"] as num?)?.toDouble(),
+    localizacaoOrigem: map["localizacao_origem"]?.toString(),
   );
 }

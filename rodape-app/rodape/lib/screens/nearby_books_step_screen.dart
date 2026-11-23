@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:rodape/models/address.dart';
 import 'package:rodape/models/livro.dart';
@@ -20,7 +21,7 @@ import '../widgets/step_progress_header.dart';
 class NearbyBooksStepScreen extends StatefulWidget {
   const NearbyBooksStepScreen({super.key, required this.cepInfo});
 
-  final Address cepInfo;
+  final Address? cepInfo;
 
   @override
   State<NearbyBooksStepScreen> createState() => _NearbyBooksStepScreenState();
@@ -28,21 +29,23 @@ class NearbyBooksStepScreen extends StatefulWidget {
 
 class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
   final _searchController = TextEditingController();
-  final Debouncing deb = Debouncing<void>(duration: const Duration(milliseconds: 400));
+  final Debouncing deb = Debouncing<void>(
+    duration: const Duration(milliseconds: 400),
+  );
   Future<List<Livro>>? _tarefaAtual;
 
   final List<Livro> _lista = [];
 
-@override
-void initState() {
-  super.initState();
-  _tarefaAtual = _obterLivros();
-}
+  @override
+  void initState() {
+    super.initState();
+    _tarefaAtual = _obterLivros();
+  }
 
-Future<List<Livro>> _obterLivros() async {
-  final searchValue = _searchController.text;
-  return await LivroService.obterLivros(filtro: searchValue);
-}
+  Future<List<Livro>> _obterLivros() async {
+    final searchValue = _searchController.text;
+    return await LivroService.obterLivros(filtro: searchValue);
+  }
 
   void _remover(Livro book) {
     setState(() {
@@ -51,44 +54,47 @@ Future<List<Livro>> _obterLivros() async {
   }
 
   Future<void> _adicionar(Livro book) async {
-  // Impede adicionar o mesmo livro mais de uma vez.
-  final jaAdicionado = _lista.any((livro) => livro.id == book.id);
+    // Impede adicionar o mesmo livro mais de uma vez.
+    final jaAdicionado = _lista.any((livro) => livro.id == book.id);
 
-  if (jaAdicionado) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Este livro já está na sua lista.'),
-      ),
-    );
-    return;
+    if (jaAdicionado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este livro já está na sua lista.'),
+        ),
+      );
+      return;
+    }
+
+    // Sem internet, o livro entra na lista mesmo assim.
+    try {
+      book.exemplares = await ExemplarService.obterExemplaresLivro(book);
+    } catch (e) {
+      debugPrint('[EXEMPLARES] Falha de rede: $e');
+    }
+
+    if (!mounted) return;
+
+    // Verifica novamente após a operação assíncrona.
+    final aindaNaoAdicionado =
+        !_lista.any((livro) => livro.id == book.id);
+
+    if (!aindaNaoAdicionado) return;
+
+    setState(() {
+      _lista.add(book);
+      _searchController.clear();
+    });
+
+    FocusScope.of(context).unfocus();
   }
-
-  // Sem internet, o livro entra na lista mesmo assim.
-  try {
-    book.exemplares = await ExemplarService.obterExemplaresLivro(book);
-  } catch (e) {
-    debugPrint('[EXEMPLARES] Falha de rede: $e');
-  }
-
-  if (!mounted) return;
-
-  // Verifica novamente após a operação assíncrona.
-  final aindaNaoAdicionado =
-      !_lista.any((livro) => livro.id == book.id);
-
-  if (!aindaNaoAdicionado) return;
-
-  setState(() {
-    _lista.add(book);
-    _searchController.clear();
-  });
-
-  FocusScope.of(context).unfocus();
-}
 
   void _abrirDetalhes(Livro book) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookDetailsScreen(book: book),
+      ),
+    );
   }
 
   @override
@@ -105,8 +111,10 @@ Future<List<Livro>> _obterLivros() async {
       return;
     }
 
-    Navigator.of(context)
-        .pushNamed('/phone', arguments: const PhoneStepArgs(isLogin: false));
+    Navigator.of(context).pushNamed(
+      '/phone',
+      arguments: const PhoneStepArgs(isLogin: false),
+    );
   }
 
   @override
@@ -114,6 +122,7 @@ Future<List<Livro>> _obterLivros() async {
     final comExemplar = _lista
         .where((b) => (b.exemplares?.length ?? 0) > 0)
         .toList();
+
     final totalExemplares = comExemplar.fold<int>(
       0,
       (sum, b) => sum + (b.exemplares?.length ?? 0),
@@ -128,7 +137,9 @@ Future<List<Livro>> _obterLivros() async {
             StepProgressHeader(
               step: 2,
               totalSteps: 4,
-              eyebrowSuffix: ' · ${widget.cepInfo.street}',
+              eyebrowSuffix: widget.cepInfo?.street.isNotEmpty == true
+                  ? ' · ${widget.cepInfo!.street}'
+                  : '',
               title:
                   '$totalExemplares exemplares dos seus ${_lista.length} títulos a menos de 2 km',
               onBack: () => Navigator.of(context).maybePop(),
@@ -145,81 +156,83 @@ Future<List<Livro>> _obterLivros() async {
                 ),
               ),
             ),
-          
-FutureBuilder<List<Livro>>(
-  future: _tarefaAtual,
-  builder: (context, snapshot) {
-    if (_tarefaAtual == null) {
-      return const SizedBox.shrink();
-    }
+            FutureBuilder<List<Livro>>(
+              future: _tarefaAtual,
+              builder: (context, snapshot) {
+                if (_tarefaAtual == null) {
+                  return const SizedBox.shrink();
+                }
 
-    if (snapshot.connectionState != ConnectionState.done) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: CircularProgressIndicator(),
-      );
-    }
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-    final data = snapshot.data;
+                final data = snapshot.data;
 
-    if (data == null) {
-      return const SizedBox.shrink();
-    }
+                if (data == null) {
+                  return const SizedBox.shrink();
+                }
 
-    final livrosDisponiveis = data
-    .where((b) => !_lista.any((selecionado) => selecionado.id == b.id))
-    .toList();
-    
-    if (livrosDisponiveis.isEmpty) {
-      return const SizedBox.shrink();
-    }
+                final livrosDisponiveis = data
+                    .where(
+                      (b) => !_lista.any(
+                        (selecionado) => selecionado.id == b.id,
+                      ),
+                    )
+                    .toList();
 
-    final altura = (livrosDisponiveis.length * 68.0)
-        .clamp(0.0, 220.0);
+                if (livrosDisponiveis.isEmpty) {
+                  return const SizedBox.shrink();
+                }
 
-    return Container(
-      height: altura,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(
-          color: AppColors.borderHairline,
-        ),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: livrosDisponiveis.length,
-        itemBuilder: (context, index) {
-          final b = livrosDisponiveis[index];
+                final altura =
+                    (livrosDisponiveis.length * 68.0).clamp(0.0, 220.0);
 
-          return ListTile(
-            dense: true,
-            title: Text(
-              b.titulo,
-              style: AppTextStyles.sans(
-                fontWeight: FontWeight.w600,
-              ),
+                return Container(
+                  height: altura,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    border: Border.all(
+                      color: AppColors.borderHairline,
+                    ),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: livrosDisponiveis.length,
+                    itemBuilder: (context, index) {
+                      final b = livrosDisponiveis[index];
+
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          b.titulo,
+                          style: AppTextStyles.sans(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          b.autor,
+                          style: AppTextStyles.sans(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppColors.spineTeal,
+                        ),
+                        onTap: () => _adicionar(b),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
-            subtitle: Text(
-              b.autor,
-              style: AppTextStyles.sans(
-                fontSize: 12,
-                color: AppColors.textMuted,
-              ),
-            ),
-            trailing: const Icon(
-              Icons.add_circle_outline,
-              color: AppColors.spineTeal,
-            ),
-            onTap: () => _adicionar(b),
-          );
-        },
-      ),
-    );
-  },
-),
-
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -244,7 +257,8 @@ FutureBuilder<List<Livro>>(
                               onTap: () => _abrirDetalhes(book),
                               child: BookRow(
                                 book: book,
-                                coverWidth: book.exemplaresCount == 0 ? 48 : 72,
+                                coverWidth:
+                                    book.exemplaresCount == 0 ? 48 : 72,
                                 metaLine: book.exemplaresCount == 0
                                     ? 'NINGUÉM TEM AINDA — AVISAMOS QUANDO APARECER'
                                     : '${book.exemplares} EXEMPLARES · ${book.frete}',
@@ -263,7 +277,8 @@ FutureBuilder<List<Livro>>(
                         ],
                       ),
                     ),
-                    if (book != _lista.last) const SizedBox(height: 14),
+                    if (book != _lista.last)
+                      const SizedBox(height: 14),
                   ],
                 ],
               ),

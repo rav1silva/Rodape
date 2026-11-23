@@ -1,8 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:rodape/models/address.dart';
 import 'package:rodape/services/cep_service.dart';
+import 'package:rodape/services/location_service.dart';
 import 'package:rodape/services/net_service.dart';
 import 'package:rodape/services/profile_service.dart';
+import 'package:rodape/services/reverse_geocoding_service.dart';
 
 import '../helpers/auth_helper.dart';
 import '../helpers/helper_pref.dart';
@@ -25,11 +28,12 @@ class _CepStepScreenState extends State<CepStepScreen> {
   final _controller = TextEditingController();
 
   bool _loading = false;
-  String? _errorText;
-  Address? _resultado;
+  bool _gpsSelecionado = false;
 
-  /// A última busca falhou por falta de conexão (não é "fora de área").
-  bool _semInternet = false;
+  String? _errorText;
+  String? _descricaoGps;
+
+  Address? _resultado;
 
   @override
   void dispose() {
@@ -37,10 +41,26 @@ class _CepStepScreenState extends State<CepStepScreen> {
     super.dispose();
   }
 
+  void _limparLocalizacao() {
+    ProfileService.registerModel.latitude = null;
+    ProfileService.registerModel.longitude = null;
+    ProfileService.registerModel.localizacaoOrigem = null;
+
+    _gpsSelecionado = false;
+    _descricaoGps = null;
+  }
+
   Future<void> _buscarCep(String cep) async {
+    final digitos = cep.replaceAll(RegExp(r'\D'), '');
+
+    if (digitos.length != 8) {
+      return;
+    }
+
+    _limparLocalizacao();
+
     if (!Net.i.online) {
       setState(() {
-        _semInternet = true;
         _errorText = 'Sem internet para consultar o CEP.';
         _resultado = null;
       });
@@ -49,19 +69,47 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
     setState(() {
       _loading = true;
-      _semInternet = false;
       _errorText = null;
       _resultado = null;
     });
 
     try {
-      final address = await CepService.obterInformacoesCep(cep);
+      final address = await CepService.obterInformacoesCep(digitos);
+
       if (!mounted) return;
+
       if (address == null) {
+        setState(() {
+          _errorText =
+              'Não foi possível localizar esse CEP. Confira os números e tente novamente.';
+        });
         return;
       }
-      await HelperPref.saveCep(cep);
-      setState(() => _resultado = address);
+
+      final latitude = double.tryParse(
+        address.location.coordinates.latitude ?? '',
+      );
+
+      final longitude = double.tryParse(
+        address.location.coordinates.longitude ?? '',
+      );
+
+      ProfileService.registerModel.latitude = latitude;
+      ProfileService.registerModel.longitude = longitude;
+
+      ProfileService.registerModel.localizacaoOrigem =
+          latitude != null && longitude != null ? 'cep' : null;
+
+      ProfileService.registerModel.cep = address.cep;
+
+      await HelperPref.saveCep(address.cep);
+
+      if (!mounted) return;
+
+      setState(() {
+        _resultado = address;
+        _errorText = null;
+      });
     } on InvalidCepException catch (e) {
       if (!mounted) return;
       setState(() => _errorText = e.message);
@@ -69,43 +117,92 @@ class _CepStepScreenState extends State<CepStepScreen> {
       if (!mounted) return;
       setState(() => _errorText = e.message);
     } catch (e) {
-      debugPrint('[CEP] Falha de rede: $e');
+      debugPrint('[CEP] Falha na consulta: $e');
+
       if (!mounted) return;
+
       setState(() {
-        _semInternet = true;
         _errorText = Net.falhaMsg;
       });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
-  void _usarLocalizacao() {
-    // Mock: sem geolocalização real, simulamos o CEP de referência do
-    // layout — o comportamento (busca + confirmação) é o mesmo do
-    // preenchimento manual.
-    _controller.text = '01221-020';
-    _buscarCep(_controller.text);
+  Future<void> _usarLocalizacao() async {
+    setState(() {
+      _loading = true;
+      _errorText = null;
+      _resultado = null;
+      _gpsSelecionado = false;
+      _descricaoGps = null;
+    });
+
+    try {
+      final position = await LocationService.obterLocalizacaoAtual();
+
+      if (!mounted) return;
+
+      final descricao =
+          await ReverseGeocodingService.obterDescricao(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+
+      if (!mounted) return;
+
+      ProfileService.registerModel.latitude = position.latitude;
+      ProfileService.registerModel.longitude = position.longitude;
+      ProfileService.registerModel.localizacaoOrigem = 'gps';
+      ProfileService.registerModel.cep = '';
+
+      _controller.clear();
+
+      setState(() {
+        _gpsSelecionado = true;
+        _descricaoGps = descricao;
+        _errorText = null;
+      });
+    } catch (e) {
+      debugPrint('[GPS] Falha ao obter localização: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _errorText = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
-  void _nextStep() {
-    ProfileService.registerModel.cep = _resultado?.cep ?? "";
-    // Guarda o CEP para retomar o cadastro se o app for fechado enquanto
-    // a pessoa confirma o e-mail.
-    HelperPref.saveCep(ProfileService.registerModel.cep);
-    if (mounted) {
-      Navigator.of(context).pushNamed('/nearby-books', arguments: _resultado);
+  Future<void> _nextStep() async {
+    final user = ProfileService.registerModel;
+
+    if (_resultado != null) {
+      user.cep = _resultado!.cep;
+    } else if (_gpsSelecionado) {
+      user.cep = '';
+    } else {
+      return;
     }
+
+    await HelperPref.saveCep(user.cep);
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushNamed(
+      '/nearby-books',
+      arguments: _resultado,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final digits = _controller.text.replaceAll(RegExp(r'\D'), '');
-    final foraDeArea = !_semInternet &&
-        _errorText != null &&
-        digits.length == 8 &&
-        _resultado == null;
-
     return Scaffold(
       backgroundColor: AppColors.paper100,
       body: SafeArea(
@@ -123,8 +220,9 @@ class _CepStepScreenState extends State<CepStepScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                 children: [
                   Text(
-                    'O CEP calcula distância e frete. O endereço completo só entra '
-                    'quando houver uma entrega de verdade.',
+                    'Use a localização do aparelho para calcular distâncias. '
+                    'Se preferir, informe seu CEP; nesse caso, a localização '
+                    'será aproximada.',
                     style: AppTextStyles.sans(
                       fontSize: 15,
                       color: AppColors.ink700,
@@ -137,11 +235,20 @@ class _CepStepScreenState extends State<CepStepScreen> {
                     controller: _controller,
                     keyboardType: TextInputType.number,
                     inputFormatters: [CepInputFormatter()],
-                    errorText: foraDeArea ? null : _errorText,
+                    errorText: _errorText,
                     onChanged: (value) {
-                      setState(() => _resultado = null);
-                      final d = value.replaceAll(RegExp(r'\D'), '');
-                      if (d.length == 8) _buscarCep(value);
+                      setState(() {
+                        _resultado = null;
+                        _errorText = null;
+                        _limparLocalizacao();
+                      });
+
+                      final digitos =
+                          value.replaceAll(RegExp(r'\D'), '');
+
+                      if (digitos.length == 8) {
+                        _buscarCep(value);
+                      }
                     },
                   ),
                   const SizedBox(height: 14),
@@ -177,20 +284,69 @@ class _CepStepScreenState extends State<CepStepScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _resultado!.street,
+                                  _resultado!.street.isNotEmpty
+                                      ? _resultado!.street
+                                      : 'CEP localizado',
                                   style: AppTextStyles.sans(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                // Text( TODO
-                                // _resultado!.densidadeLabel.toUpperCase(),
-                                // style: AppTextStyles.mono(
-                                // fontSize: 11,
-                                // color: AppColors.spineTeal,
-                                // letterSpacing: 0.6,
-                                // ),
-                                // ),
+                                Text(
+                                  'Localização aproximada pelo CEP',
+                                  style: AppTextStyles.sans(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (_gpsSelecionado)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard,
+                        border: Border.all(color: AppColors.spineTeal),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.my_location,
+                            size: 17,
+                            color: AppColors.spineTeal,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _descricaoGps != null
+                                      ? 'Localização encontrada'
+                                      : 'Localização obtida pelo GPS',
+                                  style: AppTextStyles.sans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  _descricaoGps ??
+                                      'Não foi possível identificar o bairro e a cidade.',
+                                  style: AppTextStyles.sans(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -204,53 +360,17 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       label: 'Usar minha localização',
                       variant: RodapeButtonVariant.quiet,
                       icon: Icons.location_on_outlined,
-                      onPressed: (_loading || !Net.i.online)
-                          ? null
-                          : _usarLocalizacao,
+                      onPressed: _loading ? null : _usarLocalizacao,
                     ),
                   ),
-                  if (foraDeArea) ...[
-                    const SizedBox(height: 18),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceSunken,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'FORA DE ÁREA',
-                            style: AppTextStyles.mono(
-                              fontSize: 10,
-                              color: AppColors.paperGray600,
-                              letterSpacing: 1.6,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Se ainda não houver cobertura no seu CEP, a gente diz na hora e '
-                            'avisa quando chegar. Você não fica parado nesta tela.',
-                            style: AppTextStyles.sans(
-                              fontSize: 13,
-                              color: AppColors.ink700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceCard,
                 border: Border(
@@ -259,7 +379,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
               ),
               child: RodapeButton(
                 label: 'Continuar',
-                onPressed: _resultado == null ? null : _nextStep,
+                onPressed:
+                    (_resultado != null || _gpsSelecionado) && !_loading
+                        ? _nextStep
+                        : null,
               ),
             ),
           ],

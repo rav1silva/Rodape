@@ -8,6 +8,41 @@ class ProfileService {
 
   static final _db = Supabase.instance.client;
 
+  static Future<Profile?> atualizarLocalizacao(Profile user) async {
+    if (user.id == null) {
+      throw Exception('Usuário sem identificador.');
+    }
+
+    if (user.latitude == null || user.longitude == null) {
+      throw Exception('Coordenadas de localização inválidas.');
+    }
+
+    if (user.latitude! < -90 ||
+        user.latitude! > 90 ||
+        user.longitude! < -180 ||
+        user.longitude! > 180) {
+      throw Exception('Coordenadas fora dos limites permitidos.');
+    }
+
+    if (user.localizacaoOrigem != 'gps' &&
+        user.localizacaoOrigem != 'cep') {
+      throw Exception('Origem da localização inválida.');
+    }
+
+    final resultado = await _db
+        .from('profiles')
+        .update({
+          'latitude': user.latitude,
+          'longitude': user.longitude,
+          'localizacao_origem': user.localizacaoOrigem,
+        })
+        .eq('id', user.id!)
+        .select()
+        .single();
+
+    return Profile.fromMap(resultado);
+  }
+
   static Future<Profile?> atualizarFreteMaximo(
     Profile user,
     double novoValor,
@@ -144,4 +179,6 @@ class ProfileService {
 
     return Profile.fromMap(resultado);
   }
+
+
 }
