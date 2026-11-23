@@ -7,7 +7,6 @@ import 'package:rodape/services/net_service.dart';
 import 'package:rodape/services/profile_service.dart';
 import 'package:rodape/services/reverse_geocoding_service.dart';
 
-import '../helpers/auth_helper.dart';
 import '../helpers/helper_pref.dart';
 import '../helpers/input_formatters.dart';
 import '../theme/app_colors.dart';
@@ -35,11 +34,17 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
   String? _errorText;
   String? _descricaoGps;
+  String? _erroRua;
+  String? _erroNumero;
 
   Address? _resultado;
 
   bool get _localizacaoSelecionada =>
       _resultado != null || _gpsSelecionado;
+
+  bool get _enderecoValido =>
+      _ruaController.text.trim().isNotEmpty &&
+      _numeroController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -118,14 +123,9 @@ class _CepStepScreenState extends State<CepStepScreen> {
       setState(() {
         _resultado = address;
         _ruaController.text = address.street;
+        _erroRua = null;
         _errorText = null;
       });
-    } on InvalidCepException catch (e) {
-      if (!mounted) return;
-      setState(() => _errorText = e.message);
-    } on ServiceAreaException catch (e) {
-      if (!mounted) return;
-      setState(() => _errorText = e.message);
     } catch (e) {
       debugPrint('[CEP] Falha na consulta: $e');
 
@@ -201,8 +201,20 @@ class _CepStepScreenState extends State<CepStepScreen> {
       return;
     }
 
-    user.rua = _ruaController.text.trim();
-    user.numero = _numeroController.text.trim();
+    final rua = _ruaController.text.trim();
+    final numero = _numeroController.text.trim();
+
+    setState(() {
+      _erroRua = rua.isEmpty ? 'Informe sua rua.' : null;
+      _erroNumero = numero.isEmpty ? 'Informe o número.' : null;
+    });
+
+    if (_erroRua != null || _erroNumero != null) {
+      return;
+    }
+
+    user.rua = rua;
+    user.numero = numero;
     user.complemento = _complementoController.text.trim();
 
     await HelperPref.saveCep(user.cep);
@@ -212,18 +224,6 @@ class _CepStepScreenState extends State<CepStepScreen> {
     Navigator.of(context).pushNamed(
       '/nearby-books',
       arguments: _resultado,
-    );
-  }
-
-  Widget _campoEndereco({
-    required String label,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.streetAddress,
-  }) {
-    return RodapeTextField(
-      label: label,
-      controller: controller,
-      keyboardType: keyboardType,
     );
   }
 
@@ -391,9 +391,16 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _campoEndereco(
-                      label: 'Rua',
+                    RodapeTextField(
+                      label: 'Rua *',
                       controller: _ruaController,
+                      errorText: _erroRua,
+                      textCapitalization: TextCapitalization.words,
+                      onChanged: (value) {
+                        if (value.trim().isNotEmpty && _erroRua != null) {
+                          setState(() => _erroRua = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -401,16 +408,23 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       children: [
                         Expanded(
                           flex: 2,
-                          child: _campoEndereco(
-                            label: 'Número',
+                          child: RodapeTextField(
+                            label: 'Número *',
                             controller: _numeroController,
                             keyboardType: TextInputType.number,
+                            errorText: _erroNumero,
+                            onChanged: (value) {
+                              if (value.trim().isNotEmpty &&
+                                  _erroNumero != null) {
+                                setState(() => _erroNumero = null);
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 3,
-                          child: _campoEndereco(
+                          child: RodapeTextField(
                             label: 'Complemento',
                             controller: _complementoController,
                           ),
@@ -444,8 +458,11 @@ class _CepStepScreenState extends State<CepStepScreen> {
               ),
               child: RodapeButton(
                 label: 'Continuar',
-                onPressed:
-                    _localizacaoSelecionada && !_loading
+                onPressed: _localizacaoSelecionada &&
+                        !_loading &&
+                        _enderecoValido
+                    ? _nextStep
+                    : _localizacaoSelecionada && !_loading
                         ? _nextStep
                         : null,
               ),
@@ -456,3 +473,4 @@ class _CepStepScreenState extends State<CepStepScreen> {
     );
   }
 }
+
