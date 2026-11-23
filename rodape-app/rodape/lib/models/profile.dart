@@ -25,6 +25,9 @@ class Profile {
     this.latitude,
     this.longitude,
     this.localizacaoOrigem,
+    this.rua = '',
+    this.numero = '',
+    this.complemento = '',
   });
 
   String? id;
@@ -36,6 +39,10 @@ class Profile {
   String nome = "";
   String sobrenome = "";
   String cep = "";
+
+  String rua = "";
+  String numero = "";
+  String complemento = "";
 
   int saldoCredito = 0;
   int entregues = 0;
@@ -65,6 +72,9 @@ class Profile {
       "sobrenome": sobrenome,
       "telefone": telefone,
       "cep": cep,
+      "rua": rua,
+      "numero": numero,
+      "complemento": complemento,
       "saldo_credito": saldoCredito,
       "entregues": entregues,
       "recebidos": recebidos,
@@ -82,29 +92,33 @@ class Profile {
   }
 
   factory Profile.fromMap(Map<String, dynamic> map) => Profile(
-    id: map["id"]?.toString(),
-    authUserId: map["auth_user_id"]?.toString(),
-    nome: map["nome"] ?? "",
-    sobrenome: map["sobrenome"] ?? "",
-    telefone: map["telefone"] ?? "",
-    cep: map["cep"] ?? "",
-    saldoCredito: (map["saldo_credito"] as num?)?.toInt() ?? 0,
-    entregues: (map["entregues"] as num?)?.toInt() ?? 0,
-    recebidos: (map["recebidos"] as num?)?.toInt() ?? 0,
-    rodas: (map["rodas"] as num?)?.toInt() ?? 0,
-    freteMaximo: (map["frete_maximo"] as num?)?.toDouble() ?? 25,
-    createdAt: DateTime.tryParse(map["created_at"]?.toString() ?? ""),
-    validadeCredito: DateTime.tryParse(
-      map["validade_credito"]?.toString() ?? "",
-    ),
-    aceitaRetiradaPresencial:
-        map["aceita_retirada_presencial"] as bool? ?? false,
-    pontoEncontro: map["ponto_encontro"]?.toString(),
-    aceitaUber: map["aceita_uber"] as bool? ?? false,
-    aceitaTransportadora:
-        map["aceita_transportadora"] as bool? ?? false,
-    latitude: (map["latitude"] as num?)?.toDouble(),
-    longitude: (map["longitude"] as num?)?.toDouble(),
-    localizacaoOrigem: map["localizacao_origem"]?.toString(),
-  );
+        id: map["id"]?.toString(),
+        authUserId: map["auth_user_id"]?.toString(),
+        nome: map["nome"] ?? "",
+        sobrenome: map["sobrenome"] ?? "",
+        telefone: map["telefone"] ?? "",
+        cep: map["cep"] ?? "",
+        rua: map["rua"] ?? "",
+        numero: map["numero"] ?? "",
+        complemento: map["complemento"] ?? "",
+        saldoCredito: (map["saldo_credito"] as num?)?.toInt() ?? 0,
+        entregues: (map["entregues"] as num?)?.toInt() ?? 0,
+        recebidos: (map["recebidos"] as num?)?.toInt() ?? 0,
+        rodas: (map["rodas"] as num?)?.toInt() ?? 0,
+        freteMaximo: (map["frete_maximo"] as num?)?.toDouble() ?? 25,
+        createdAt: DateTime.tryParse(map["created_at"]?.toString() ?? ""),
+        validadeCredito: DateTime.tryParse(
+          map["validade_credito"]?.toString() ?? "",
+        ),
+        aceitaRetiradaPresencial:
+            map["aceita_retirada_presencial"] as bool? ?? false,
+        pontoEncontro: map["ponto_encontro"]?.toString(),
+        aceitaUber: map["aceita_uber"] as bool? ?? false,
+        aceitaTransportadora:
+            map["aceita_transportadora"] as bool? ?? false,
+        latitude: (map["latitude"] as num?)?.toDouble(),
+        longitude: (map["longitude"] as num?)?.toDouble(),
+        localizacaoOrigem: map["localizacao_origem"]?.toString(),
+      );
 }
+

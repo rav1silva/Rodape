@@ -160,25 +160,26 @@ class ProfileService {
     return resultado == null ? null : Profile.fromMap(resultado);
   }
 
-  static Future<Profile?> atualizarDadosPessoais(Profile user) async {
-    if (user.id == null) {
-      throw Exception('Usuário sem identificador.');
-    }
-
-    final resultado = await _db
-        .from('profiles')
-        .update({
-          'nome': user.nome,
-          'sobrenome': user.sobrenome,
-          'telefone': user.telefone,
-          'cep': user.cep,
-        })
-        .eq('id', user.id!)
-        .select()
-        .single();
-
-    return Profile.fromMap(resultado);
+static Future<Profile?> atualizarDadosPessoais(Profile user) async {
+  if (user.id == null) {
+    throw Exception('Usuário sem identificador.');
   }
 
+  final resultado = await _db
+      .from('profiles')
+      .update({
+        'nome': user.nome,
+        'sobrenome': user.sobrenome,
+        'telefone': user.telefone,
+        'cep': user.cep,
+        'rua': user.rua,
+        'numero': user.numero,
+        'complemento': user.complemento,
+      })
+      .eq('id', user.id!)
+      .select()
+      .single();
 
+  return Profile.fromMap(resultado);
+}
 }

@@ -1,3 +1,4 @@
+
 import 'package:rodape/models/address_location.dart';
 
 class Address {
@@ -20,12 +21,14 @@ class Address {
   final AddressLocation location;
 
   factory Address.fromJson(Map<String, dynamic> json) => Address(
-    cep: json["cep"],
-    state: json["state"],
-    street: json["street"],
-    city: json["city"],
-    neighborhood: json["neighborhood"],
-    timezoneName: json["timezoneName"],
-    location: AddressLocation.fromJson(json["location"]),
-  );
+        cep: json['cep']?.toString() ?? '',
+        state: json['state']?.toString() ?? '',
+        street: json['street']?.toString() ?? '',
+        city: json['city']?.toString() ?? '',
+        neighborhood: json['neighborhood']?.toString() ?? '',
+        timezoneName: json['timezone']?.toString() ?? '',
+        location: AddressLocation.fromJson(
+          Map<String, dynamic>.from(json['location'] ?? {}),
+        ),
+      );
 }

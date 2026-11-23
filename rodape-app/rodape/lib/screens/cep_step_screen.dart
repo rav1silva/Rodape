@@ -26,6 +26,9 @@ class CepStepScreen extends StatefulWidget {
 
 class _CepStepScreenState extends State<CepStepScreen> {
   final _controller = TextEditingController();
+  final _ruaController = TextEditingController();
+  final _numeroController = TextEditingController();
+  final _complementoController = TextEditingController();
 
   bool _loading = false;
   bool _gpsSelecionado = false;
@@ -35,9 +38,15 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
   Address? _resultado;
 
+  bool get _localizacaoSelecionada =>
+      _resultado != null || _gpsSelecionado;
+
   @override
   void dispose() {
     _controller.dispose();
+    _ruaController.dispose();
+    _numeroController.dispose();
+    _complementoController.dispose();
     super.dispose();
   }
 
@@ -108,6 +117,7 @@ class _CepStepScreenState extends State<CepStepScreen> {
 
       setState(() {
         _resultado = address;
+        _ruaController.text = address.street;
         _errorText = null;
       });
     } on InvalidCepException catch (e) {
@@ -191,6 +201,10 @@ class _CepStepScreenState extends State<CepStepScreen> {
       return;
     }
 
+    user.rua = _ruaController.text.trim();
+    user.numero = _numeroController.text.trim();
+    user.complemento = _complementoController.text.trim();
+
     await HelperPref.saveCep(user.cep);
 
     if (!mounted) return;
@@ -198,6 +212,18 @@ class _CepStepScreenState extends State<CepStepScreen> {
     Navigator.of(context).pushNamed(
       '/nearby-books',
       arguments: _resultado,
+    );
+  }
+
+  Widget _campoEndereco({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.streetAddress,
+  }) {
+    return RodapeTextField(
+      label: label,
+      controller: controller,
+      keyboardType: keyboardType,
     );
   }
 
@@ -240,6 +266,7 @@ class _CepStepScreenState extends State<CepStepScreen> {
                       setState(() {
                         _resultado = null;
                         _errorText = null;
+                        _ruaController.clear();
                         _limparLocalizacao();
                       });
 
@@ -353,6 +380,44 @@ class _CepStepScreenState extends State<CepStepScreen> {
                         ],
                       ),
                     ),
+                  if (_localizacaoSelecionada) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      'Endereço',
+                      style: AppTextStyles.sans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _campoEndereco(
+                      label: 'Rua',
+                      controller: _ruaController,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: _campoEndereco(
+                            label: 'Número',
+                            controller: _numeroController,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: _campoEndereco(
+                            label: 'Complemento',
+                            controller: _complementoController,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   ListenableBuilder(
                     listenable: Net.i,
@@ -380,7 +445,7 @@ class _CepStepScreenState extends State<CepStepScreen> {
               child: RodapeButton(
                 label: 'Continuar',
                 onPressed:
-                    (_resultado != null || _gpsSelecionado) && !_loading
+                    _localizacaoSelecionada && !_loading
                         ? _nextStep
                         : null,
               ),
