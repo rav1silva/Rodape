@@ -150,25 +150,24 @@ static Future<Livro> obterOuCadastrarPorIsbn(String isbn) async {
     );
   }
 
-  // 2. Consulta o Google Books.
-  final uri = Uri.https(
-    'www.googleapis.com',
-    '/books/v1/volumes',
-    {
-      'q': 'isbn:$codigo',
-      'maxResults': '10',
+  // 2. Consulta o Google Books pela Edge Function.
+  final resposta = await supabase.functions.invoke(
+    'consultar-livro',
+    body: {
+      'isbn': codigo,
     },
   );
 
-  final resposta = await http.get(uri).timeout(
-    const Duration(seconds: 20),
-  );
-
-  if (resposta.statusCode != 200) {
-    throw Exception('Não foi possível consultar os dados do livro.');
+  if (resposta.status != 200) {
+    throw Exception(
+      'Não foi possível consultar os dados do livro.',
+    );
   }
 
-  final dados = jsonDecode(resposta.body) as Map<String, dynamic>;
+  final dados = Map<String, dynamic>.from(
+    resposta.data as Map,
+  );
+
   final itens = dados['items'] as List? ?? [];
 
   Map<String, dynamic>? informacoes;
