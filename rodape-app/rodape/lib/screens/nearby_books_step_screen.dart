@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:rodape/models/address.dart';
 import 'package:rodape/models/livro.dart';
@@ -127,7 +126,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
       0,
       (sum, b) => sum + (b.exemplares?.length ?? 0),
     );
-
+    final tecladoAberto = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       backgroundColor: AppColors.paper100,
       body: SafeArea(
@@ -156,85 +155,143 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                 ),
               ),
             ),
-            FutureBuilder<List<Livro>>(
-              future: _tarefaAtual,
-              builder: (context, snapshot) {
-                if (_tarefaAtual == null) {
-                  return const SizedBox.shrink();
-                }
-
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                final data = snapshot.data;
-
-                if (data == null) {
-                  return const SizedBox.shrink();
-                }
-
-                final livrosDisponiveis = data
-                    .where(
-                      (b) => !_lista.any(
-                        (selecionado) => selecionado.id == b.id,
-                      ),
-                    )
-                    .toList();
-
-                if (livrosDisponiveis.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                final altura =
-                    (livrosDisponiveis.length * 68.0).clamp(0.0, 220.0);
-
-                return Container(
-                  height: altura,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCard,
-                    border: Border.all(
-                      color: AppColors.borderHairline,
-                    ),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: livrosDisponiveis.length,
-                    itemBuilder: (context, index) {
-                      final b = livrosDisponiveis[index];
-
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          b.titulo,
-                          style: AppTextStyles.sans(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          b.autor,
-                          style: AppTextStyles.sans(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.add_circle_outline,
-                          color: AppColors.spineTeal,
-                        ),
-                        onTap: () => _adicionar(b),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+           
             Expanded(
-              child: ListView(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Column(
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: constraints.maxHeight * 0.5,
+                      ),
+                      child: _buildSugestoes(),
+                    ),
+                    Expanded(child: _buildLista()),
+                  ],
+                ),
+              ),
+            ),
+            if (!tecladoAberto)
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceCard,
+                  border: Border(
+                    top: BorderSide(color: AppColors.borderHairline),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Crie sua conta para resgatar',
+                      style: AppTextStyles.display(fontSize: 22),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Um crédito paga um exemplar; quem recebe paga a entrega. Sua lista fica guardada.',
+                      style: AppTextStyles.sans(
+                        fontSize: 13,
+                        color: AppColors.ink700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    RodapeButton(
+                      label: 'Criar conta',
+                      variant: RodapeButtonVariant.accent,
+                      onPressed: _salvar,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Caixa de resultados da busca. Encolhe ao tamanho do conteúdo
+  /// (`shrinkWrap`) e rola quando passa do limite imposto pelo pai.
+  Widget _buildSugestoes() {
+    return FutureBuilder<List<Livro>>(
+      future: _tarefaAtual,
+      builder: (context, snapshot) {
+        if (_tarefaAtual == null) {
+          return const SizedBox.shrink();
+        }
+
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(12),
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final data = snapshot.data;
+
+        if (data == null) {
+          return const SizedBox.shrink();
+        }
+
+        final livrosDisponiveis = data
+            .where(
+              (b) => !_lista.any(
+                (selecionado) => selecionado.id == b.id,
+              ),
+            )
+            .toList();
+
+        if (livrosDisponiveis.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            border: Border.all(
+              color: AppColors.borderHairline,
+            ),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: livrosDisponiveis.length,
+            itemBuilder: (context, index) {
+              final b = livrosDisponiveis[index];
+
+              return ListTile(
+                dense: true,
+                title: Text(
+                  b.titulo,
+                  style: AppTextStyles.sans(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  b.autor,
+                  style: AppTextStyles.sans(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.add_circle_outline,
+                  color: AppColors.spineTeal,
+                ),
+                onTap: () => _adicionar(b),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLista() {
+    return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 children: [
                   Text(
@@ -261,7 +318,7 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                                     book.exemplaresCount == 0 ? 48 : 72,
                                 metaLine: book.exemplaresCount == 0
                                     ? 'NINGUÉM TEM AINDA — AVISAMOS QUANDO APARECER'
-                                    : '${book.exemplares} EXEMPLARES · ${book.frete}',
+                                    : '${book.exemplaresCount} EXEMPLARES · ${book.frete}',
                               ),
                             ),
                           ),
@@ -281,44 +338,6 @@ class _NearbyBooksStepScreenState extends State<NearbyBooksStepScreen> {
                       const SizedBox(height: 14),
                   ],
                 ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceCard,
-                border: Border(
-                  top: BorderSide(color: AppColors.borderHairline),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Crie sua conta para resgatar',
-                    style: AppTextStyles.display(fontSize: 22),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Um crédito paga um exemplar; quem recebe paga a entrega. Sua lista fica guardada.',
-                    style: AppTextStyles.sans(
-                      fontSize: 13,
-                      color: AppColors.ink700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  RodapeButton(
-                    label: 'Criar conta',
-                    variant: RodapeButtonVariant.accent,
-                    onPressed: _salvar,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

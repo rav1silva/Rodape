@@ -160,7 +160,7 @@ class OnboardingCompleteScreen extends StatelessWidget {
                   TextButton(
                     onPressed: () => _irParaHome(context),
                     child: Text(
-                      'Depois',
+                      'Continuar',
                       style: AppTextStyles.mono(
                         fontSize: 12,
                         color: AppColors.ink900,
