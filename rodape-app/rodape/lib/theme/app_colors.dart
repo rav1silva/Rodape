@@ -77,4 +77,8 @@ class AppColors {
   static const borderOnWood = Color(0x42F5F1E6); // rgba(245,241,230,.26)
 
   static const shadowStamped = ink900;
+
+  /// Fundo de `splash.png` / `app-icon.png`. Precisa bater com a cor da
+  /// splash nativa (`flutter_native_splash` no pubspec) para não piscar.
+  static const splashBackground = Color(0xFFF2F0EC);
 }

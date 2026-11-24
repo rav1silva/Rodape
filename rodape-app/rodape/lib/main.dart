@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:rodape/models/address.dart';
@@ -21,6 +20,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/phone_step_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/shelf_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/wishlist_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/rodape_bottom_nav.dart';
@@ -28,6 +28,7 @@ import 'data/local_db.dart';
 import 'services/livro_service.dart';
 import 'services/net_service.dart';
 import 'widgets/offline_banner.dart';
+import 'package:flutter/services.dart';
 
 /// Nomes de rota do app — cadastro/login (fluxo de onboarding) + a casca
 /// principal com abas ("/home").
@@ -35,6 +36,7 @@ import 'widgets/offline_banner.dart';
 class AppRoutes {
   AppRoutes._();
 
+  static const splash = '/splash';
   static const onboarding = '/';
   static const cep = '/cep';
   static const nearbyBooks = '/nearby-books';
@@ -93,42 +95,46 @@ Future<String> rotaInicialPelaSessao() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Carrega as variáveis de ambiente.
-  await dotenv.load();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
-  // Inicializa o banco local.
-  await LocalDb.db;
+  runApp(const RodapeApp());
+}
 
-  // Inicializa o Supabase antes da autenticação Google.
-  await Supabase.initialize(
-    url: dotenv.get("SUPABASE_URL"),
-    publishableKey: dotenv.get("SUPABASE_KEY"),
-  );
 
-  // Inicializa o login nativo com Google.
-  await AuthHelper.initializeGoogleSignIn();
+Future<String> inicializarApp() async {
+  try {
+    await dotenv.load();
 
-  // Inicializa os serviços do aplicativo.
-  await Net.i.init();
-  await LivroService.atualizarCache();
+    // Inicializa o banco local.
+    await LocalDb.db;
 
-  // Conferência temporária do banco local.
-  final locais = await (await LocalDb.db).query('livros');
-  debugPrint('livros no aparelho: ${locais.length}');
+    // Inicializa o Supabase antes da autenticação Google.
+    await Supabase.initialize(
+      url: dotenv.get("SUPABASE_URL"),
+      publishableKey: dotenv.get("SUPABASE_KEY"),
+    );
 
-  final rotaInicial = await rotaInicialPelaSessao();
+    await AuthHelper.initializeGoogleSignIn();
 
-  runApp(
-  RodapeApp(
-    initialRoute: rotaInicial,
-  ),
-);
+    // Inicializa os serviços do aplicativo.
+    await Net.i.init();
+    await LivroService.atualizarCache();
+
+    // Conferência temporária do banco local.
+    final locais = await (await LocalDb.db).query('livros');
+    debugPrint('livros no aparelho: ${locais.length}');
+
+    return await rotaInicialPelaSessao();
+  } catch (e, st) {
+    debugPrint('Erro na inicialização do app: $e\n$st');
+    return AppRoutes.onboarding;
+  }
 }
 
 class RodapeApp extends StatelessWidget {
-  const RodapeApp({super.key, required this.initialRoute});
-
-  final String initialRoute;
+  const RodapeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +142,12 @@ class RodapeApp extends StatelessWidget {
       title: 'Rodapé',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      initialRoute: initialRoute,
+      onGenerateInitialRoutes: (_) => [
+        _buildRoute(
+          const RouteSettings(name: AppRoutes.splash),
+          const SplashScreen(inicializar: inicializarApp),
+        ),
+      ],
       onGenerateRoute: _onGenerateRoute,
       builder: (context, child) =>
           OfflineBanner(child: child ?? const SizedBox.shrink()),
@@ -195,7 +206,7 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
   }
 }
 
-/// Todas as telas do fluxo compartilham a mesma transição (fade).
+/// fade
 PageRouteBuilder<void> _buildRoute(
   RouteSettings settings,
   Widget child,
@@ -209,7 +220,6 @@ PageRouteBuilder<void> _buildRoute(
   );
 }
 
-/// Container principal do app: mantém as 5 abas vivas em um IndexedStack.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 

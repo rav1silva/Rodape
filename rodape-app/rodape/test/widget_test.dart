@@ -3,7 +3,7 @@ import 'package:rodape/main.dart';
 
 void main() {
   test('RodapeApp deve ser criado', () {
-    const app = RodapeApp(initialRoute: AppRoutes.onboarding);
+    const app = RodapeApp();
     expect(app, isA<RodapeApp>());
   });
 }
