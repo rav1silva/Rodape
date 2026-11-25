@@ -1,29 +1,23 @@
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import 'rodape_button.dart';
 
-/// Card teal de saldo de crédito, usado na Home e na Lista de desejos.
-/// "Um crédito paga um exemplar, sempre."
 class CreditBalanceCard extends StatelessWidget {
   const CreditBalanceCard({
     super.key,
     required this.saldo,
-    required this.validade,
-    this.descricao =
-        'Um crédito paga um exemplar, sempre. Resgate quando quiser, sem esperar roda.',
-    this.onResgatar,
+    this.descricao = 'Um crédito paga um exemplar, sempre.',
   });
 
   final int saldo;
-  final String validade;
   final String descricao;
-  final VoidCallback? onResgatar;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.spineTeal,
@@ -32,32 +26,18 @@ class CreditBalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                'SALDO DE CRÉDITO',
-                style: AppTextStyles.mono(
-                  fontSize: 10,
-                  color: const Color(0xFFBCD8D6),
-                  letterSpacing: 1.6,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'VALIDADE $validade',
-                style: AppTextStyles.mono(
-                  fontSize: 10,
-                  color: const Color(0xFFBCD8D6),
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
+          Text(
+            'SALDO DE CRÉDITO',
+            style: AppTextStyles.mono(
+              fontSize: 10,
+              color: const Color(0xFFBCD8D6),
+              letterSpacing: 1.6,
+            ),
           ),
           const SizedBox(height: 10),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 '$saldo',
@@ -70,26 +50,17 @@ class CreditBalanceCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    descricao,
-                    style: AppTextStyles.sans(
-                      fontSize: 13,
-                      color: const Color(0xFFDDEBEA),
-                      height: 1.4,
-                    ),
+                child: Text(
+                  descricao,
+                  textAlign: TextAlign.left,
+                  style: AppTextStyles.sans(
+                    fontSize: 13,
+                    color: const Color(0xFFDDEBEA),
+                    height: 1.4,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          RodapeButton(
-            label: 'Resgatar crédito',
-            icon: Icons.paid_outlined,
-            variant: RodapeButtonVariant.accent,
-            onPressed: onResgatar,
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -49,13 +50,18 @@ class RodapeButton extends StatelessWidget {
       children: [
         if (icon != null) ...[
           Icon(icon, size: _fontSize + 3),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
         ],
-        Text(
-          label,
-          style: GoogleFonts.ibmPlexSans(
-            fontSize: _fontSize,
-            fontWeight: FontWeight.w600,
+        Flexible(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.ibmPlexSans(
+              fontSize: _fontSize,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -71,6 +77,7 @@ class RodapeButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         ),
         child: child,
       ),
@@ -83,6 +90,7 @@ class RodapeButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         ),
         child: child,
       ),
@@ -95,6 +103,7 @@ class RodapeButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         ),
         child: child,
       ),

@@ -1,9 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:rodape/models/address.dart';
 import 'package:rodape/models/onboarding_args.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 
 import 'services/auth_service.dart';
 import 'services/profile_service.dart';
@@ -16,7 +16,6 @@ import 'screens/nearby_books_step_screen.dart';
 import 'screens/nearby_screen.dart';
 import 'screens/onboarding_complete_screen.dart';
 import 'screens/onboarding_screen.dart';
-
 import 'screens/phone_step_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/shelf_screen.dart';
@@ -46,11 +45,13 @@ class AppRoutes {
   static const onboardingComplete = '/onboarding-complete';
   static const home = '/home';
 }
+
 /// Decide a rota inicial a partir da sessão do Supabase:
 /// - sessão + perfil → Home;
 /// - sessão confirmada sem perfil (ex.: app foi fechado enquanto a pessoa
 ///   confirmava o e-mail e reabriu pelo link) → retoma no passo do nome;
 /// - sem sessão → abertura.
+
 Future<String> rotaInicialPelaSessao() async {
   final supabase = Supabase.instance.client;
   final authUser = supabase.auth.currentUser;
@@ -81,6 +82,7 @@ Future<String> rotaInicialPelaSessao() async {
         ..authUserId = authUser.id
         ..telefone = telefone
         ..cep = await HelperPref.getCep() ?? '';
+
       return AppRoutes.name;
     }
 
@@ -101,7 +103,6 @@ Future<void> main() async {
 
   runApp(const RodapeApp());
 }
-
 
 Future<String> inicializarApp() async {
   try {
@@ -178,8 +179,6 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
         ),
       );
 
-
-
     case AppRoutes.name:
       return _buildRoute(
         settings,
@@ -206,7 +205,7 @@ Route<dynamic> _onGenerateRoute(RouteSettings settings) {
   }
 }
 
-/// fade
+/// Fade
 PageRouteBuilder<void> _buildRoute(
   RouteSettings settings,
   Widget child,
@@ -229,19 +228,32 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> {
   int _index = 0;
+
   final GlobalKey<HomeScreenState> _homeKey =
-    GlobalKey<HomeScreenState>();
+      GlobalKey<HomeScreenState>();
 
   final GlobalKey<NearbyScreenState> _nearbyKey =
       GlobalKey<NearbyScreenState>();
 
   late final List<Widget> _screens = [
-  HomeScreen(key: _homeKey),
-  NearbyScreen(key: _nearbyKey),
-  const ShelfScreen(),
-  const WishlistScreen(),
-  const ProfileScreen(),
-];
+    HomeScreen(
+      key: _homeKey,
+      onAbrirPerto: () {
+        setState(() => _index = 1);
+        _nearbyKey.currentState?.atualizarAoRetornar();
+      },
+      onAbrirEstante: () {
+        setState(() => _index = 2);
+      },
+      onAbrirLista: () {
+        setState(() => _index = 3);
+      },
+    ),
+    NearbyScreen(key: _nearbyKey),
+    const ShelfScreen(),
+    const WishlistScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -252,19 +264,19 @@ class _RootShellState extends State<RootShell> {
       ),
       bottomNavigationBar: RodapeBottomNav(
         currentIndex: _index,
-       onTap: (i) {
-  final mudouDeAba = _index != i;
+        onTap: (i) {
+          final mudouDeAba = _index != i;
 
-  setState(() => _index = i);
+          setState(() => _index = i);
 
-  if (mudouDeAba && i == 0) {
-    _homeKey.currentState?.atualizarAoRetornar();
-  }
+          if (mudouDeAba && i == 0) {
+            _homeKey.currentState?.atualizarAoRetornar();
+          }
 
-  if (i == 1) {
-    _nearbyKey.currentState?.atualizarAoRetornar();
-  }
-},
+          if (i == 1) {
+            _nearbyKey.currentState?.atualizarAoRetornar();
+          }
+        },
       ),
     );
   }

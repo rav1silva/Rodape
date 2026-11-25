@@ -338,7 +338,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         vertical: 10,
                       ),
                       itemCount: itens.length,
-                      onReorder: _reordenar,
+                      onReorderItem: _reordenar,
                       itemBuilder: (context, i) {
                         final d = itens[i];
 
@@ -418,69 +418,74 @@ class _BuscaLivroSheetState extends State<_BuscaLivroSheet> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        16 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SizedBox(
-        height: 420,
-        child: Column(
-          children: [
-            RodapeTextField(
-              label: 'Adicionar título',
-              controller: _controller,
-              onChanged: (v) => setState(() {
-                _resultados =
-                    LivroService.obterLivros(filtro: v);
-              }),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: FutureBuilder<List<Livro>>(
-                future: _resultados,
-                builder: (context, snapshot) {
-                  final livros = snapshot.data ?? [];
+ @override
+Widget build(BuildContext context) {
+  final teclado = MediaQuery.viewInsetsOf(context).bottom;
+  final alturaDisponivel =
+      MediaQuery.sizeOf(context).height - teclado;
 
-                  return ListView(
-                    children: [
-                      for (final l in livros)
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            l.titulo,
-                            style: AppTextStyles.sans(
-                              fontWeight: FontWeight.w600,
-                            ),
+  final alturaSheet =
+      (alturaDisponivel - 32).clamp(0.0, 420.0).toDouble();
+
+  return Padding(
+    padding: EdgeInsets.fromLTRB(
+      16,
+      16,
+      16,
+      16 + teclado,
+    ),
+    child: SizedBox(
+      height: alturaSheet,
+      child: Column(
+        children: [
+          RodapeTextField(
+            label: 'Adicionar título',
+            controller: _controller,
+            onChanged: (v) => setState(() {
+              _resultados = LivroService.obterLivros(filtro: v);
+            }),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: FutureBuilder<List<Livro>>(
+              future: _resultados,
+              builder: (context, snapshot) {
+                final livros = snapshot.data ?? [];
+
+                return ListView(
+                  children: [
+                    for (final l in livros)
+                      ListTile(
+                        dense: true,
+                        title: Text(
+                          l.titulo,
+                          style: AppTextStyles.sans(
+                            fontWeight: FontWeight.w600,
                           ),
-                          subtitle: Text(
-                            l.autor,
-                            style: AppTextStyles.sans(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.add_circle_outline,
-                            color: AppColors.spineTeal,
-                          ),
-                          onTap: () =>
-                              Navigator.of(context).pop(l),
                         ),
-                    ],
-                  );
-                },
-              ),
+                        subtitle: Text(
+                          l.autor,
+                          style: AppTextStyles.sans(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppColors.spineTeal,
+                        ),
+                        onTap: () => Navigator.of(context).pop(l),
+                      ),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _WishlistTile extends StatelessWidget {
@@ -532,9 +537,13 @@ class _WishlistTile extends StatelessWidget {
       ),
     );
 
-    final tile = BookRow(
+final tile = LayoutBuilder(
+  builder: (context, constraints) {
+    final larguraPequena = constraints.maxWidth < 300;
+
+    return BookRow(
       book: book!,
-      coverWidth: _semExemplar ? 44 : 72,
+      coverWidth: _semExemplar ? 44 : (larguraPequena ? 52 : 72),
       leading: leading,
       metaLine: _semExemplar
           ? 'NENHUM EXEMPLAR — AVISAMOS QUANDO APARECER'
@@ -550,6 +559,8 @@ class _WishlistTile extends StatelessWidget {
               onPressed: onResgatar,
             ),
     );
+  },
+);
 
     if (!_semExemplar) {
       return index == 1
